@@ -65,7 +65,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
   onOpenDischarge,
   onCancelDischarge,
 }) => {
-  const [activeTab, setActiveTab] = useState<'info' | 'vitals' | 'glucose'>('info');
+  const [activeTab, setActiveTab] = useState<'vitals' | 'glucose'>('vitals');
 
   // Glucose modal state
   const [glucoseModalOpen, setGlucoseModalOpen] = useState(false);
@@ -143,6 +143,17 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
             <p className="text-xs text-[#56615C]">
               {ageText(patient)} · Vào viện: {hm(patient.admitAt)} {dmy(patient.admitAt)} ({daysInHospital} ngày)
             </p>
+            {patient.note && (
+              <p className="text-xs text-[#1F4E45] bg-[#E9F6F1] px-2.5 py-1 rounded-lg border border-[#C5E6DC] mt-1 max-w-xl">
+                <span className="font-bold">Chẩn đoán:</span> {patient.note}
+              </p>
+            )}
+            {patient.outAt && (
+              <p className="text-[11px] text-amber-900 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 mt-1">
+                Thời điểm {patient.outKind ? KIND_LABELS[patient.outKind].toLowerCase() : 'ra viện'}: <strong>{hm(patient.outAt)} {dmy(patient.outAt)}</strong>
+                {patient.outNote && <span className="italic ml-1">({patient.outNote})</span>}
+              </p>
+            )}
           </div>
         </div>
 
@@ -201,21 +212,8 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
         </div>
       </div>
 
-      {/* 3 Main Sections Navigation Tabs */}
+      {/* Main Sections Navigation Tabs */}
       <div className="flex items-center gap-2 border-b border-[#DDE1DC] pb-1">
-        <button
-          type="button"
-          onClick={() => setActiveTab('info')}
-          className={`flex items-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-            activeTab === 'info'
-              ? 'bg-[#0E6B5E] text-white shadow-xs'
-              : 'bg-white text-[#56615C] hover:bg-gray-100 hover:text-[#0F2F2A]'
-          }`}
-        >
-          <User className="w-4 h-4" />
-          <span>1. Thẻ thông tin bệnh nhân</span>
-        </button>
-
         <button
           type="button"
           onClick={() => setActiveTab('vitals')}
@@ -226,7 +224,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
           }`}
         >
           <HeartPulse className="w-4 h-4" />
-          <span>2. DHST & Diễn biến ({vitalsTimeline.length})</span>
+          <span>1. DHST & Diễn biến ({vitalsTimeline.length})</span>
         </button>
 
         <button
@@ -239,144 +237,10 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
           }`}
         >
           <Syringe className="w-4 h-4" />
-          <span>3. Bảng theo dõi Đường huyết & Insulin ({patientGlucose.length})</span>
+          <span>2. Bảng theo dõi Đường huyết & Insulin ({patientGlucose.length})</span>
         </button>
       </div>
-
-      {/* TAB 1: THẺ THÔNG TIN BỆNH NHÂN */}
-      {activeTab === 'info' && (
-        <div className="space-y-4 animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl border border-[#DDE1DC] shadow-xs p-5 space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-[#EEF0ED]">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-[#E9F6F1] text-[#0E6B5E] flex items-center justify-center font-bold text-lg">
-                  {patient.room}
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-[#0F2F2A]">{patient.name}</h3>
-                  <p className="text-xs text-[#56615C]">
-                    Hồ sơ điều trị nội trú khoa Thần kinh - Cơ xương khớp
-                  </p>
-                </div>
-              </div>
-
-              {/* Nút chỉnh sửa thông tin nổi bật */}
-              <button
-                type="button"
-                onClick={() => onEditPatient(patient)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white font-bold text-xs transition-colors shadow-xs cursor-pointer active:scale-95"
-              >
-                <Edit2 className="w-4 h-4" />
-                <span>Chỉnh sửa thông tin bệnh nhân</span>
-              </button>
-            </div>
-
-            {/* Thông tin hành chính & điều trị */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-3.5 rounded-xl bg-[#F9FAF9] border border-[#EEF0ED]">
-                <span className="text-[11px] text-[#56615C] block">Phòng / Giường</span>
-                <strong className="text-sm text-[#0F2F2A]">{patient.room}</strong>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-[#F9FAF9] border border-[#EEF0ED]">
-                <span className="text-[11px] text-[#56615C] block">Tuổi</span>
-                <strong className="text-sm text-[#0F2F2A]">{patient.age || '—'}</strong>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-[#F9FAF9] border border-[#EEF0ED]">
-                <span className="text-[11px] text-[#56615C] block">Thời điểm nhập viện</span>
-                <strong className="text-sm text-[#0F2F2A]">
-                  {hm(patient.admitAt)} · {dmy(patient.admitAt)}
-                </strong>
-              </div>
-
-              <div className="p-3.5 rounded-xl bg-[#F9FAF9] border border-[#EEF0ED]">
-                <span className="text-[11px] text-[#56615C] block">Số ngày điều trị</span>
-                <strong className="text-sm text-[#0F2F2A]">
-                  {daysInHospital} ngày
-                </strong>
-              </div>
-            </div>
-
-            {/* Chẩn đoán & Ghi chú ban đầu */}
-            <div className="p-4 rounded-xl bg-[#F3F7F5] border border-[#D5E5DE] space-y-1.5">
-              <span className="text-xs font-bold text-[#0E6B5E] block uppercase tracking-wider">
-                Chẩn đoán & Ghi chú điều trị ban đầu
-              </span>
-              <p className="text-sm text-[#17201D] whitespace-pre-wrap leading-relaxed">
-                {patient.note || 'Chưa có ghi chú chẩn đoán ban đầu.'}
-              </p>
-            </div>
-
-            {/* Dấu hiệu sinh tồn lúc vào viện */}
-            <div>
-              <h4 className="text-xs font-bold text-[#0F2F2A] uppercase tracking-wider mb-2.5">
-                Dấu hiệu sinh tồn lúc nhập viện
-              </h4>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
-                <div className="p-3 rounded-xl bg-white border border-[#DDE1DC] text-center">
-                  <span className="text-[10px] text-gray-500 block">Mạch</span>
-                  <strong className="text-sm text-gray-900">
-                    {patient.pulse || patient.av?.pulse || '—'}
-                  </strong>
-                  <span className="text-[10px] text-gray-400 block">lần/phút</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-white border border-[#DDE1DC] text-center">
-                  <span className="text-[10px] text-gray-500 block">Huyết áp</span>
-                  <strong className="text-sm text-gray-900">
-                    {patient.bp || patient.av?.bp || '—'}
-                  </strong>
-                  <span className="text-[10px] text-gray-400 block">mmHg</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-white border border-[#DDE1DC] text-center">
-                  <span className="text-[10px] text-gray-500 block">Nhiệt độ</span>
-                  <strong className="text-sm text-gray-900">
-                    {patient.temp || patient.av?.temp || '—'}
-                  </strong>
-                  <span className="text-[10px] text-gray-400 block">°C</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-white border border-[#DDE1DC] text-center">
-                  <span className="text-[10px] text-gray-500 block">SpO2</span>
-                  <strong className="text-sm text-gray-900">
-                    {patient.spo2 || patient.av?.spo2 || '—'}
-                  </strong>
-                  <span className="text-[10px] text-gray-400 block">%</span>
-                </div>
-
-                <div className="p-3 rounded-xl bg-white border border-[#DDE1DC] text-center">
-                  <span className="text-[10px] text-gray-500 block">Nhịp thở</span>
-                  <strong className="text-sm text-gray-900">
-                    {patient.rr || patient.av?.rr || '—'}
-                  </strong>
-                  <span className="text-[10px] text-gray-400 block">lần/phút</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Thông tin ra viện nếu có */}
-            {patient.outAt && (
-              <div className="p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-1 text-xs">
-                <span className="font-bold text-amber-900 block">
-                  Thông tin xuất viện / Chuyển viện:
-                </span>
-                <p className="text-amber-950">
-                  Thời điểm: <strong>{hm(patient.outAt)} {dmy(patient.outAt)}</strong> · Hình thức: <strong>{KIND_LABELS[patient.outKind || 'ra']}</strong>
-                </p>
-                {patient.outNote && (
-                  <p className="text-amber-900 mt-1 italic">
-                    Ghi chú ra viện: {patient.outNote}
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* TAB 2: THẺ XEM DHST / DIỄN BIẾN */}
+      {/* TAB 1: THẺ XEM DHST / DIỄN BIẾN */}
       {activeTab === 'vitals' && (
         <div className="space-y-4 animate-in fade-in duration-150">
           <div className="flex items-center justify-between bg-white p-3.5 rounded-2xl border border-[#DDE1DC] shadow-xs">

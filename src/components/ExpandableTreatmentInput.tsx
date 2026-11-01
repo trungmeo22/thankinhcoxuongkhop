@@ -33,6 +33,7 @@ export const ExpandableTreatmentInput: React.FC<ExpandableTreatmentInputProps> =
           textareaRef.current.focus();
           const len = textareaRef.current.value.length;
           textareaRef.current.setSelectionRange(len, len);
+          textareaRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
       }, 50);
       return () => clearTimeout(timer);
