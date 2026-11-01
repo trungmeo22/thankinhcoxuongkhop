@@ -19,12 +19,17 @@ export const Header: React.FC<HeaderProps> = ({ now, syncStatus, userEmail, onOp
     return () => clearInterval(timer);
   }, []);
 
-  const scenes = ['/img/scene1.svg', '/img/scene2.svg', '/img/scene3.svg', '/img/scene4.svg'];
+  const scenes = [
+    '/img/anime_scene1.jpg',
+    '/img/anime_scene2.jpg',
+    '/img/anime_scene3.jpg',
+    '/img/anime_scene4.jpg'
+  ];
   const nowD = new Date(now);
   const nowStr = `${WDL[nowD.getDay()]}, ${dmy(now)} · ${hm(now)}`;
 
   return (
-    <header className="relative overflow-hidden bg-[#E9F6F1] border-b border-[#DDE1DC] py-2 sm:py-2.5 px-3 sm:px-4 z-20">
+    <header className="relative overflow-hidden bg-[#0A3D34] border-b border-[#DDE1DC] py-4 sm:py-6 md:py-8 px-3 sm:px-4 z-20 min-h-[96px] sm:min-h-[120px] md:min-h-[136px] flex items-center">
       {/* Cycling background scene illustrations */}
       {scenes.map((src, idx) => (
         <img
@@ -35,7 +40,10 @@ export const Header: React.FC<HeaderProps> = ({ now, syncStatus, userEmail, onOp
         />
       ))}
 
-      <div className="relative max-w-7xl mx-auto flex items-center justify-between gap-2">
+      {/* Subtle protective overlay for text readability */}
+      <div className="absolute inset-0 bg-gradient-to-r from-emerald-950/70 via-emerald-900/35 to-black/20 pointer-events-none" />
+
+      <div className="relative w-full max-w-7xl mx-auto flex items-center justify-between gap-2 z-10">
         {/* Brand & Status: 1 single clean line on mobile */}
         <div className="flex items-center gap-2 sm:gap-3 bg-white/92 backdrop-blur-md rounded-xl sm:rounded-2xl px-2.5 py-1.5 sm:px-3 sm:py-2 shadow-xs border border-emerald-950/10 min-w-0">
           <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-[#0F2F2A] flex items-center justify-center flex-none text-[#E6F2EE] shadow-inner">

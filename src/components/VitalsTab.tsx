@@ -15,7 +15,7 @@ import {
   isOut,
   KIND_LABELS
 } from '../lib/constants';
-import { Plus, HeartPulse, FileSpreadsheet, AlertTriangle, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, HeartPulse, FileSpreadsheet, AlertTriangle, Calendar, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import { VitalsTimelineTable } from './VitalsTimelineTable';
 
 interface VitalsTabProps {
@@ -24,6 +24,7 @@ interface VitalsTabProps {
   onOpenRecordModal: (p?: Patient) => void;
   onOpenPatientHistory: (p: Patient) => void;
   onAddTreatment?: (recordId: number, text: string) => void;
+  onGoBack?: () => void;
 }
 
 export const VitalsTab: React.FC<VitalsTabProps> = ({
@@ -32,6 +33,7 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
   onOpenRecordModal,
   onOpenPatientHistory,
   onAddTreatment,
+  onGoBack,
 }) => {
   const [selectedDate, setSelectedDate] = useState(isoDay(Date.now()));
   const [selectedRoom, setSelectedRoom] = useState<string>('all');
@@ -129,9 +131,22 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
     <div className="space-y-4">
       {/* Header bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-[#DDE1DC] shadow-xs">
-        <div>
-          <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">DHST & diễn biến theo phòng</h2>
-          <p className="text-xs text-[#56615C] mt-0.5">{dayTitle} · Chỉ số bất thường được tô màu cam</p>
+        <div className="flex items-center gap-2.5">
+          {onGoBack && (
+            <button
+              type="button"
+              onClick={onGoBack}
+              className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer mr-0.5"
+              title="Quay lại"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Quay lại</span>
+            </button>
+          )}
+          <div>
+            <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">DHST & diễn biến theo phòng</h2>
+            <p className="text-xs text-[#56615C] mt-0.5">{dayTitle} · Chỉ số bất thường được tô màu cam</p>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

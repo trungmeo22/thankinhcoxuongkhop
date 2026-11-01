@@ -15,7 +15,7 @@ import {
   fold
 } from '../lib/constants';
 import { generateDutyReportPdf } from '../lib/pdf';
-import { FileText, Download, Copy, Check, Plus, Trash2, Edit3, X, Calendar, UserCheck, Search, ChevronDown, ChevronUp } from 'lucide-react';
+import { FileText, Download, Copy, Check, Plus, Trash2, Edit3, X, Calendar, UserCheck, Search, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 
 interface DutyTabProps {
   patients: Patient[];
@@ -24,6 +24,7 @@ interface DutyTabProps {
   reports: DutyReport[];
   onSaveReport: (report: DutyReport) => void;
   onViewReport: (report: DutyReport) => void;
+  onGoBack?: () => void;
 }
 
 export const DutyTab: React.FC<DutyTabProps> = ({
@@ -33,6 +34,7 @@ export const DutyTab: React.FC<DutyTabProps> = ({
   reports,
   onSaveReport,
   onViewReport,
+  onGoBack,
 }) => {
   const now = Date.now();
   // Default duty date is from 07:00 yesterday if before 07:00, or today
@@ -337,9 +339,22 @@ export const DutyTab: React.FC<DutyTabProps> = ({
       <div className="lg:col-span-7 bg-white p-4 md:p-5 rounded-2xl border border-[#DDE1DC] shadow-xs space-y-4">
         <div>
           <div className="flex items-center justify-between">
-            <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">
-              {editingId ? 'Sửa báo cáo trực' : 'Lập báo cáo trực lâm sàng'}
-            </h2>
+            <div className="flex items-center gap-2">
+              {onGoBack && (
+                <button
+                  type="button"
+                  onClick={onGoBack}
+                  className="p-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer mr-1"
+                  title="Quay lại"
+                >
+                  <ArrowLeft className="w-4 h-4" />
+                  <span className="hidden sm:inline">Quay lại</span>
+                </button>
+              )}
+              <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">
+                {editingId ? 'Sửa báo cáo trực' : 'Lập báo cáo trực lâm sàng'}
+              </h2>
+            </div>
             {editingId && (
               <button
                 type="button"

@@ -10,19 +10,22 @@ import {
   ChevronUp,
   Clock,
   CheckCircle2,
-  AlertCircle
+  AlertCircle,
+  ArrowLeft
 } from 'lucide-react';
 
 interface OldPatientsTabProps {
   patients: Patient[];
   onRestorePatient: (patientId: number) => void;
   onOpenPatientDetail?: (patient: Patient) => void;
+  onGoBack?: () => void;
 }
 
 export const OldPatientsTab: React.FC<OldPatientsTabProps> = ({
   patients,
   onRestorePatient,
   onOpenPatientDetail,
+  onGoBack,
 }) => {
   const [q, setQ] = useState('');
   const [kindFilter, setKindFilter] = useState<'all' | DischargeKind>('all');
@@ -79,17 +82,30 @@ export const OldPatientsTab: React.FC<OldPatientsTabProps> = ({
     <div className="space-y-4 animate-in fade-in duration-150">
       {/* Top Header Card */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-[#DDE1DC] shadow-xs">
-        <div>
-          <h2 className="text-base md:text-lg font-bold text-[#0F2F2A] flex items-center gap-2">
-            <Archive className="w-5 h-5 text-[#0E6B5E]" />
-            <span>Danh sách Bệnh nhân cũ (Đã ra viện)</span>
-            <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#0E6B5E] font-bold">
-              {allDischarged.length} ca
-            </span>
-          </h2>
-          <p className="text-xs text-[#56615C] mt-0.5">
-            Hồ sơ lưu trữ đầy đủ lịch sử DHST, đường huyết & điều trị. Có thể khôi phục lại bất kỳ lúc nào nếu người bệnh tiếp tục điều trị.
-          </p>
+        <div className="flex items-center gap-2.5">
+          {onGoBack && (
+            <button
+              type="button"
+              onClick={onGoBack}
+              className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer mr-0.5"
+              title="Quay lại"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Quay lại</span>
+            </button>
+          )}
+          <div>
+            <h2 className="text-base md:text-lg font-bold text-[#0F2F2A] flex items-center gap-2">
+              <Archive className="w-5 h-5 text-[#0E6B5E]" />
+              <span>Danh sách Bệnh nhân cũ (Đã ra viện)</span>
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#0E6B5E] font-bold">
+                {allDischarged.length} ca
+              </span>
+            </h2>
+            <p className="text-xs text-[#56615C] mt-0.5">
+              Hồ sơ lưu trữ đầy đủ lịch sử DHST, đường huyết & điều trị. Có thể khôi phục lại bất kỳ lúc nào nếu người bệnh tiếp tục điều trị.
+            </p>
+          </div>
         </div>
 
         {/* Search Bar */}

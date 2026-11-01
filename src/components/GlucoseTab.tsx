@@ -19,7 +19,8 @@ import {
   CheckCircle2,
   AlertTriangle,
   History,
-  FileText
+  FileText,
+  ArrowLeft
 } from 'lucide-react';
 
 interface GlucoseTabProps {
@@ -29,6 +30,7 @@ interface GlucoseTabProps {
   onSaveGlucoseRecord: (record: GlucoseRecord) => void;
   onDeleteGlucoseRecord: (id: number) => void;
   onOpenPatientDetail?: (p: Patient) => void;
+  onGoBack?: () => void;
 }
 
 export const GlucoseTab: React.FC<GlucoseTabProps> = ({
@@ -38,6 +40,7 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
   onSaveGlucoseRecord,
   onDeleteGlucoseRecord,
   onOpenPatientDetail,
+  onGoBack,
 }) => {
   const now = Date.now();
   const todayStr = isoDay(now);
@@ -171,6 +174,17 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
       {/* Top Header & Actions */}
       <div className="bg-white p-4 rounded-2xl border border-[#DDE1DC] shadow-xs flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
+          {onGoBack && (
+            <button
+              type="button"
+              onClick={onGoBack}
+              className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer mr-0.5"
+              title="Quay lại"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Quay lại</span>
+            </button>
+          )}
           <div className="w-10 h-10 rounded-xl bg-emerald-100 text-[#0E6B5E] flex items-center justify-center font-bold">
             <Syringe className="w-5 h-5" />
           </div>

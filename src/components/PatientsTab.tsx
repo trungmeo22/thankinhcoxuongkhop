@@ -32,6 +32,7 @@ interface PatientsTabProps {
   onSelectPatientId?: (id: number | null) => void;
   onCancelDischarge?: (patientId: number) => void;
   onSelectTab?: (tab: any) => void;
+  onGoBack?: () => void;
 }
 
 export const PatientsTab: React.FC<PatientsTabProps> = ({
@@ -52,6 +53,7 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
   onSelectPatientId,
   onCancelDischarge,
   onSelectTab,
+  onGoBack,
 }) => {
   const [q, setQ] = useState('');
   const [showOut, setShowOut] = useState(initialShowDischarged);
@@ -121,24 +123,37 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
     <div className="space-y-4">
       {/* Search & Actions Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-[#DDE1DC] shadow-xs">
-        <div>
-          <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">
-            {showOut ? (
-              <span className="flex items-center gap-2">
-                <span>Danh sách báo ra viện</span>
-                <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
-                  {dischargedAll.length}
-                </span>
-                {pendingDischargeCount > 0 && (
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-semibold">
-                    {pendingDischargeCount} chờ ra
+        <div className="flex items-center gap-2.5">
+          {onGoBack && (
+            <button
+              type="button"
+              onClick={onGoBack}
+              className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer mr-0.5"
+              title="Quay lại"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Quay lại</span>
+            </button>
+          )}
+          <div>
+            <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">
+              {showOut ? (
+                <span className="flex items-center gap-2">
+                  <span>Danh sách báo ra viện</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                    {dischargedAll.length}
                   </span>
-                )}
-              </span>
-            ) : (
-              <span>Bệnh nhân đang điều trị · {activePatients.length}</span>
-            )}
-          </h2>
+                  {pendingDischargeCount > 0 && (
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-semibold">
+                      {pendingDischargeCount} chờ ra
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span>Bệnh nhân đang điều trị · {activePatients.length}</span>
+              )}
+            </h2>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

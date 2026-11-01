@@ -60,6 +60,26 @@ export default function App() {
   const [isDemoUser, setIsDemoUser] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTab, setActiveTab] = useState<TabKey>('dash');
+  const [tabHistory, setTabHistory] = useState<TabKey[]>(['dash']);
+
+  const handleSelectTab = (tab: TabKey) => {
+    if (tab !== activeTab) {
+      setTabHistory((prev) => [...prev, tab]);
+      setActiveTab(tab);
+    }
+  };
+
+  const handleBackTab = () => {
+    if (tabHistory.length > 1) {
+      const nextHistory = [...tabHistory];
+      nextHistory.pop();
+      const prevTab = nextHistory[nextHistory.length - 1] || 'dash';
+      setTabHistory(nextHistory);
+      setActiveTab(prevTab);
+    } else {
+      setActiveTab('dash');
+    }
+  };
 
   // Clinical State
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -636,7 +656,8 @@ export default function App() {
       {/* Navigation */}
       <Navigation
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={handleSelectTab}
+        onBack={handleBackTab}
         activePatientCount={activeCount}
         dischargedCount={dischargedCount}
         pendingScheduleCount={pendingScheduleCount}
@@ -652,15 +673,15 @@ export default function App() {
             beds={beds}
             onUpdateBeds={handleUpdateBeds}
             onGoToPatients={() => {
-              setActiveTab('bn');
+              handleSelectTab('bn');
               setInitialShowDischarged(false);
             }}
-            onGoToSchedule={() => setActiveTab('lich')}
+            onGoToSchedule={() => handleSelectTab('lich')}
             onOpenDischargedList={() => {
-              setActiveTab('cu');
+              handleSelectTab('cu');
             }}
             onSignOut={handleSignOut}
-            onSelectTab={setActiveTab}
+            onSelectTab={handleSelectTab}
             todayGlucoseCount={todayGlucoseCount}
             userEmail={currentUser?.email || (isDemoUser ? 'Nội bộ đơn nguyên' : null)}
           />
@@ -675,7 +696,8 @@ export default function App() {
             selectedPatientId={selectedPatientId}
             onSelectPatientId={setSelectedPatientId}
             onCancelDischarge={handleCancelDischarge}
-            onSelectTab={setActiveTab}
+            onSelectTab={handleSelectTab}
+            onGoBack={handleBackTab}
             onOpenAdmit={() => {
               setEditingPatient(null);
               setAdmitModalOpen(true);
@@ -707,9 +729,10 @@ export default function App() {
           <OldPatientsTab
             patients={patients}
             onRestorePatient={handleCancelDischarge}
+            onGoBack={handleBackTab}
             onOpenPatientDetail={(p) => {
               setSelectedPatientId(p.id);
-              setActiveTab('bn');
+              handleSelectTab('bn');
             }}
           />
         )}
@@ -721,9 +744,10 @@ export default function App() {
             insulins={insulins}
             onSaveGlucoseRecord={handleSaveGlucoseRecord}
             onDeleteGlucoseRecord={handleDeleteGlucoseRecord}
+            onGoBack={handleBackTab}
             onOpenPatientDetail={(p) => {
               setSelectedPatientId(p.id);
-              setActiveTab('bn');
+              handleSelectTab('bn');
             }}
           />
         )}
@@ -732,6 +756,7 @@ export default function App() {
           <VitalsTab
             patients={patients}
             recs={recs}
+            onGoBack={handleBackTab}
             onOpenRecordModal={(p) => {
               setVitalsTargetPatient(p || null);
               setVitalsModalOpen(true);
@@ -755,6 +780,7 @@ export default function App() {
               setViewTargetReport(r);
               setViewReportModalOpen(true);
             }}
+            onGoBack={handleBackTab}
           />
         )}
 
@@ -762,6 +788,7 @@ export default function App() {
           <ScheduleTab
             scheds={scheds}
             patients={patients}
+            onGoBack={handleBackTab}
             onOpenOrderModal={() => {
               setOrderTargetPatient(null);
               setOrderModalOpen(true);

@@ -6,7 +6,7 @@ import {
   TYPE_LABELS,
   isOut
 } from '../lib/constants';
-import { Plus, Check, RotateCcw, Trash2, Calendar, Syringe, Zap } from 'lucide-react';
+import { Plus, Check, RotateCcw, Trash2, Calendar, Syringe, Zap, ArrowLeft } from 'lucide-react';
 
 interface ScheduleTabProps {
   scheds: ScheduleItem[];
@@ -14,6 +14,7 @@ interface ScheduleTabProps {
   onOpenOrderModal: () => void;
   onToggleDone: (id: number) => void;
   onDeleteSchedule: (id: number) => void;
+  onGoBack?: () => void;
 }
 
 export const ScheduleTab: React.FC<ScheduleTabProps> = ({
@@ -22,6 +23,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
   onOpenOrderModal,
   onToggleDone,
   onDeleteSchedule,
+  onGoBack,
 }) => {
   const [filter, setFilter] = useState<'all' | ProcedureType>('all');
   const today = isoDay(Date.now());
@@ -63,9 +65,22 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
     <div className="space-y-4">
       {/* Top Filter and Actions */}
       <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-[#DDE1DC] shadow-xs">
-        <div>
-          <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">Lịch tiêm khớp & điện cơ</h2>
-          <p className="text-xs text-[#56615C] mt-0.5">Sắp xếp theo ngày thực hiện · Đánh dấu khi hoàn thành thủ thuật</p>
+        <div className="flex items-center gap-2.5">
+          {onGoBack && (
+            <button
+              type="button"
+              onClick={onGoBack}
+              className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer mr-0.5"
+              title="Quay lại"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Quay lại</span>
+            </button>
+          )}
+          <div>
+            <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">Lịch tiêm khớp & điện cơ</h2>
+            <p className="text-xs text-[#56615C] mt-0.5">Sắp xếp theo ngày thực hiện · Đánh dấu khi hoàn thành thủ thuật</p>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

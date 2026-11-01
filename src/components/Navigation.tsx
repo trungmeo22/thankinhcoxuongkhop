@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, HeartPulse, FileText, CalendarClock, Syringe, Archive } from 'lucide-react';
+import { LayoutDashboard, Users, HeartPulse, FileText, CalendarClock, Syringe, Archive, ArrowLeft } from 'lucide-react';
 
 export type TabKey = 'dash' | 'bn' | 'dhst' | 'duonghuyet' | 'truc' | 'lich' | 'cu';
 
@@ -10,6 +10,7 @@ interface NavigationProps {
   dischargedCount?: number;
   pendingScheduleCount: number;
   todayGlucoseCount?: number;
+  onBack?: () => void;
 }
 
 export const Navigation: React.FC<NavigationProps> = ({
@@ -19,6 +20,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   dischargedCount = 0,
   pendingScheduleCount,
   todayGlucoseCount = 0,
+  onBack,
 }) => {
   const tabs = [
     { key: 'dash' as TabKey, label: 'Tổng quan', short: 'Tổng quan', icon: LayoutDashboard },
@@ -30,8 +32,11 @@ export const Navigation: React.FC<NavigationProps> = ({
     { key: 'cu' as TabKey, label: 'Bệnh nhân cũ', short: 'BN cũ', badge: dischargedCount, icon: Archive },
   ];
 
+  const currentTab = tabs.find((t) => t.key === activeTab);
+  const CurrentIcon = currentTab?.icon;
+
   return (
-    <div className="sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-[#DDE1DC] shadow-xs">
+    <div className={`sticky top-0 z-20 bg-white/95 backdrop-blur border-b border-[#DDE1DC] shadow-xs ${activeTab === 'dash' ? 'hidden md:block' : ''}`}>
       <div className="max-w-7xl mx-auto px-2 md:px-4">
         {/* Desktop View: Horizontal Tab Bar */}
         <nav className="hidden md:flex gap-1.5 py-1.5 justify-start" aria-label="Chức năng chính">
@@ -65,37 +70,34 @@ export const Navigation: React.FC<NavigationProps> = ({
           })}
         </nav>
 
-        {/* Mobile View: 4-column Grid (No horizontal scrolling!) */}
-        <nav className="grid grid-cols-4 gap-1.5 py-1.5 md:hidden" aria-label="Chức năng chính trên di động">
-          {tabs.map((t) => {
-            const isActive = activeTab === t.key;
-            const Icon = t.icon;
-            return (
-              <button
-                key={t.key}
-                type="button"
-                onClick={() => onSelectTab(t.key)}
-                className={`min-h-[38px] px-0.5 py-1 rounded-xl text-[10px] sm:text-[11px] font-semibold flex items-center justify-center gap-0.5 sm:gap-1 transition-all cursor-pointer border ${
-                  isActive
-                    ? 'bg-[#0E6B5E] text-white border-[#0E6B5E] shadow-xs'
-                    : 'bg-[#F9FAF9] text-[#3A4540] border-[#DDE1DC] hover:bg-gray-50'
-                }`}
-              >
-                <Icon className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 ${isActive ? 'text-white' : 'text-[#56615C]'}`} />
-                <span className="truncate">{t.short}</span>
-                {Boolean(t.badge && t.badge > 0) && (
-                  <span
-                    className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
-                      isActive ? 'bg-[#F0A061] text-[#2A1404]' : 'bg-[#E4F0EC] text-[#0B5C51]'
-                    }`}
-                  >
-                    {t.badge}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </nav>
+        {/* Mobile View: Clean Back Bar when NOT on Dashboard */}
+        {activeTab !== 'dash' && (
+          <nav className="flex md:hidden items-center justify-between py-2 px-1 gap-2" aria-label="Thanh điều hướng di động">
+            <button
+              type="button"
+              onClick={onBack || (() => onSelectTab('dash'))}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#E9F6F1] text-[#0E6B5E] border border-emerald-200 font-bold text-xs shadow-2xs hover:bg-[#D5EDE4] transition-all cursor-pointer active:scale-95 shrink-0"
+              title="Quay lại trang trước"
+            >
+              <ArrowLeft className="w-4 h-4 stroke-[2.5]" />
+              <span>Quay lại</span>
+            </button>
+
+            <div className="flex items-center gap-1.5 text-xs font-bold text-[#0F2F2A] truncate">
+              {CurrentIcon && <CurrentIcon className="w-4 h-4 text-[#0E6B5E] shrink-0" />}
+              <span className="truncate">{currentTab?.label}</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => onSelectTab('dash')}
+              className="px-2.5 py-1.5 rounded-xl text-xs font-semibold text-gray-600 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-200 cursor-pointer shrink-0"
+              title="Về trang Tổng quan"
+            >
+              Tổng quan
+            </button>
+          </nav>
+        )}
       </div>
     </div>
   );
