@@ -43,9 +43,9 @@ export const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({
   const timeline = [...patientRecs, admitRecord].sort((a, b) => b.at - a.at);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-4xl xl:max-w-5xl bg-white rounded-2xl shadow-2xl border border-[#DDE1DC] p-5 my-8 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-start justify-between pb-3 border-b border-[#EEF0ED]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs">
+      <div className="relative w-full max-w-4xl xl:max-w-5xl bg-white rounded-2xl shadow-2xl border border-[#DDE1DC] max-h-[92vh] sm:max-h-[88vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-start justify-between px-5 py-3.5 border-b border-[#EEF0ED] shrink-0 bg-white">
           <div className="flex items-center gap-3">
             <span className="px-3 py-1.5 rounded-xl bg-[#0F2F2A] text-white font-bold text-sm">
               {patient.room}
@@ -68,35 +68,37 @@ export const PatientHistoryModal: React.FC<PatientHistoryModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {isIn(patient) && (
-          <div className="flex justify-between items-center bg-[#F3F4F1] p-2.5 rounded-xl">
-            <span className="text-xs text-[#56615C]">
-              Tổng số lần ghi nhận DHST & diễn biến: <strong>{timeline.length}</strong>
-            </span>
-            <button
-              type="button"
-              onClick={() => onOpenRecordVitals(patient)}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-semibold transition-colors shadow-xs"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span>Ghi DHST / Diễn biến mới</span>
-            </button>
-          </div>
-        )}
+        <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-5 space-y-4">
+          {isIn(patient) && (
+            <div className="flex justify-between items-center bg-[#F3F4F1] p-2.5 rounded-xl">
+              <span className="text-xs text-[#56615C]">
+                Tổng số lần ghi nhận DHST & diễn biến: <strong>{timeline.length}</strong>
+              </span>
+              <button
+                type="button"
+                onClick={() => onOpenRecordVitals(patient)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-semibold transition-colors shadow-xs cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Ghi DHST / Diễn biến mới</span>
+              </button>
+            </div>
+          )}
 
-        {/* Vitals Horizontal Timeline Table */}
-        <VitalsTimelineTable
-          items={timeline}
-          patient={patient}
-          onAddVitals={isIn(patient) ? () => onOpenRecordVitals(patient) : undefined}
-          onAddTreatment={onAddTreatment}
-        />
+          {/* Vitals Horizontal Timeline Table */}
+          <VitalsTimelineTable
+            items={timeline}
+            patient={patient}
+            onAddVitals={isIn(patient) ? () => onOpenRecordVitals(patient) : undefined}
+            onAddTreatment={onAddTreatment}
+          />
+        </div>
       </div>
     </div>
   );

@@ -86,11 +86,11 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-[#DDE1DC] p-5 my-8 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-        <div className="flex items-center justify-between pb-2 border-b border-[#EEF0ED]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs">
+      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-[#DDE1DC] max-h-[92vh] sm:max-h-[88vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#EEF0ED] bg-white shrink-0">
           <div>
-            <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">Lên chỉ định thủ thuật</h2>
+            <h2 className="text-sm sm:text-base font-bold text-[#0F2F2A]">Lên chỉ định thủ thuật</h2>
             {selectedPatient && (
               <p className="text-xs text-[#56615C]">
                 {selectedPatient.room} · {selectedPatient.name} ({ageText(selectedPatient)})
@@ -100,47 +100,48 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Type Toggle Tabs */}
-        <div className="grid grid-cols-2 gap-2 bg-[#F3F4F1] p-1 rounded-xl">
-          <button
-            type="button"
-            onClick={() => {
-              setType('tiem');
-              setSite('');
-            }}
-            className={`py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
-              type === 'tiem'
-                ? 'bg-white text-[#0B4F45] shadow-xs'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Syringe className="w-4 h-4" />
-            <span>Tiêm khớp</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setType('dien');
-              setSite('');
-            }}
-            className={`py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all ${
-              type === 'dien'
-                ? 'bg-white text-[#2B3889] shadow-xs'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            <Zap className="w-4 h-4" />
-            <span>Điện cơ</span>
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+        {/* Form with scrollable body and fixed footer */}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden text-xs">
+          <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-5 space-y-3.5">
+            {/* Type Toggle Tabs */}
+            <div className="grid grid-cols-2 gap-2 bg-[#F3F4F1] p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setType('tiem');
+                  setSite('');
+                }}
+                className={`py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  type === 'tiem'
+                    ? 'bg-white text-[#0B4F45] shadow-xs'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Syringe className="w-4 h-4" />
+                <span>Tiêm khớp</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setType('dien');
+                  setSite('');
+                }}
+                className={`py-2 rounded-lg font-bold text-xs flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  type === 'dien'
+                    ? 'bg-white text-[#2B3889] shadow-xs'
+                    : 'text-gray-600 hover:text-gray-900'
+                }`}
+              >
+                <Zap className="w-4 h-4" />
+                <span>Điện cơ</span>
+              </button>
+            </div>
           {/* Patient Selection if not locked */}
           {!initialPatient && (
             <div>
@@ -292,17 +293,20 @@ export const OrderModal: React.FC<OrderModalProps> = ({
             </div>
           )}
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-[#EEF0ED]">
+          </div>
+
+          {/* Footer - Fixed bottom */}
+          <div className="flex items-center justify-end gap-2.5 px-5 py-3 border-t border-[#EEF0ED] bg-[#F9FAF9] shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors"
+              className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors cursor-pointer"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white font-semibold transition-colors shadow-xs"
+              className="px-5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white font-bold transition-all shadow-xs cursor-pointer active:scale-95"
             >
               Lưu chỉ định
             </button>

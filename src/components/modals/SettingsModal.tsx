@@ -136,17 +136,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs overflow-y-auto">
-      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-[#DDE1DC] p-5 my-6 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#EEF0ED]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/50 backdrop-blur-xs">
+      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-[#DDE1DC] max-h-[92vh] sm:max-h-[88vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+        {/* Header - Fixed top */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#EEF0ED] bg-white shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-[#0E6B5E] flex items-center justify-center border border-emerald-100">
+            <div className="w-9 h-9 rounded-xl bg-emerald-50 text-[#0E6B5E] flex items-center justify-center border border-emerald-100 shrink-0">
               <SettingsIcon className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-[#0F2F2A]">
-                Cài đặt khoa phòng, Giường bệnh & Insulin
+              <h2 className="text-sm sm:text-base font-bold text-[#0F2F2A]">
+                Cài đặt khoa phòng, Giường & Insulin
               </h2>
               <p className="text-xs text-gray-500">Cập nhật công suất giường, danh mục phòng & loại insulin</p>
             </div>
@@ -161,7 +161,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden text-xs">
+          <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-5 space-y-4">
           {/* Bed capacity */}
           <div className="p-3.5 rounded-xl bg-[#F9FAF9] border border-[#E6E9E5] space-y-2">
             <div className="flex items-center justify-between">
@@ -380,12 +381,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
           )}
 
-          {/* Modal action buttons */}
-          <div className="flex items-center justify-between pt-2 border-t border-[#EEF0ED]">
-            <p className="text-[11px] text-gray-500">
+          </div>
+
+          {/* Modal action buttons - Fixed bottom */}
+          <div className="flex items-center justify-between px-5 py-3 border-t border-[#EEF0ED] bg-[#F9FAF9] shrink-0">
+            <p className="text-[11px] text-gray-500 hidden sm:block">
               * Nhớ bấm <strong>Lưu cài đặt</strong> để cập nhật dữ liệu.
             </p>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 ml-auto">
               <button
                 type="button"
                 onClick={onClose}
@@ -395,7 +398,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white font-semibold transition-colors shadow-xs cursor-pointer active:scale-95"
+                className="px-5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white font-bold transition-all shadow-xs cursor-pointer active:scale-95"
               >
                 Lưu cài đặt
               </button>
