@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Patient, ScheduleItem } from '../types';
 import {
   isIn,
@@ -11,17 +11,13 @@ import {
   hm,
   ageText,
   TYPE_LABELS,
-  WDL,
-  dmy,
-  vitalLine
+  dmy
 } from '../lib/constants';
 import {
   Bed,
   UserPlus,
   UserMinus,
   Syringe,
-  Copy,
-  Check,
   ArrowRight,
   ShieldCheck,
   LogOut,
@@ -29,7 +25,8 @@ import {
   HeartPulse,
   FileText,
   CalendarClock,
-  Archive
+  Archive,
+  Clock
 } from 'lucide-react';
 import { TabKey } from './Navigation';
 
@@ -112,59 +109,40 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   const inPts = series.map((d, i) => `${(i + 0.5) * 100},${150 - yv(d.nin)}`).join(' ');
   const outPts = series.map((d, i) => `${(i + 0.5) * 100},${150 - yv(d.nout)}`).join(' ');
 
-  // Briefing Report text generator
-  const [copiedGb, setCopiedGb] = useState(false);
-  const generateGbText = () => {
-    const L: string[] = [];
-    const nowD = new Date(now);
-    L.push('GIAO BAN – ĐƠN NGUYÊN CƠ XƯƠNG KHỚP');
-    L.push(`${WDL[nowD.getDay()]}, ${dmy(now)} (Lập lúc ${hm(now)})`);
-    L.push(`• Đang điều trị: ${activeCount}/${beds} giường (${occPct}%) | Nhập mới 24h: ${newIn24h.length} | Ra viện 24h: ${outToday} | Chờ ra viện: ${pendingDischarges}`);
-    L.push('');
-    L.push('DANH SÁCH BỆNH NHÂN ĐANG ĐIỀU TRỊ:');
-    activePatients
-      .slice()
-      .sort((a, b) => String(a.room).localeCompare(String(b.room), 'vi', { numeric: true }))
-      .forEach((p, idx) => {
-        L.push(`${idx + 1}. [${p.room}] ${p.name} (${ageText(p)}) – Nhập viện: ${hm(p.admitAt)} ${dm(p.admitAt)}`);
-        const v = vitalLine(p);
-        if (v) L.push(`   DHST: ${v}`);
-        if (p.note) L.push(`   Ghi chú: ${p.note}`);
-      });
+  // Ngày điều trị trung bình thực tế trong 7 ngày
+  const out7DaysPatients = patients.filter(
+    (p) => isOut(p, now) && (p.outAt || 0) >= from7 && (p.outAt || 0) <= now
+  );
 
-    L.push('');
-    L.push(`CHỈ ĐỊNH HÔM NAY (${todayScheds.length}):`);
-    if (!todayScheds.length) {
-      L.push('Không có chỉ định nào.');
-    } else {
-      todayScheds.forEach((x) => {
-        const pt = patients.find((p) => p.id === x.patientId);
-        L.push(`- ${x.time} ${TYPE_LABELS[x.type]} – ${pt ? `[${pt.room}] ${pt.name}` : '?'} – ${x.site} (${x.who || 'Chưa phân công'})${x.done ? ' [ĐÃ LÀM]' : ''}`);
-      });
-    }
+  const outStayDays = out7DaysPatients.map((p) => {
+    const admitDate = fromIso(isoDay(p.admitAt));
+    const outDate = fromIso(isoDay(p.outAt || now));
+    const diff = Math.round((outDate - admitDate) / DAY);
+    return Math.max(1, diff === 0 ? 1 : diff);
+  });
 
-    const outs = patients
-      .filter((p) => p.status === 'out' && p.outAt != null && (p.outAt > now || now - p.outAt < DAY))
-      .sort((a, b) => (a.outAt || 0) - (b.outAt || 0));
-    L.push('');
-    L.push(`BÁO RA VIỆN & CHỜ RA VIỆN (${outs.length}):`);
-    if (!outs.length) {
-      L.push('Không có.');
-    } else {
-      outs.forEach((p) => {
-        L.push(`- [${p.room}] ${p.name} – Ra: ${hm(p.outAt!)} ${dm(p.outAt!)}${p.outAt! > now ? ' (Chờ ra viện)' : ''}${p.outNote ? ` – ${p.outNote}` : ''}`);
-      });
-    }
+  const avgOutStay =
+    outStayDays.length > 0
+      ? outStayDays.reduce((sum, d) => sum + d, 0) / outStayDays.length
+      : null;
 
-    return L.join('\n');
-  };
+  const activeStayDays = activePatients.map((p) => {
+    const admitDate = fromIso(isoDay(p.admitAt));
+    const currentDate = fromIso(isoDay(now));
+    const diff = Math.round((currentDate - admitDate) / DAY);
+    return Math.max(1, diff === 0 ? 1 : diff);
+  });
 
-  const handleCopyGb = () => {
-    const text = generateGbText();
-    navigator.clipboard.writeText(text);
-    setCopiedGb(true);
-    setTimeout(() => setCopiedGb(false), 2500);
-  };
+  const avgActiveStay =
+    activeStayDays.length > 0
+      ? activeStayDays.reduce((sum, d) => sum + d, 0) / activeStayDays.length
+      : null;
+
+  const hasOutData = avgOutStay !== null;
+  const primaryAvg = hasOutData ? avgOutStay : avgActiveStay;
+  const primaryAvgFormatted = primaryAvg !== null ? (Math.round(primaryAvg * 10) / 10).toFixed(1) : '—';
+  const minStay = outStayDays.length > 0 ? Math.min(...outStayDays) : null;
+  const maxStay = outStayDays.length > 0 ? Math.max(...outStayDays) : null;
 
   return (
     <div className="space-y-5">
@@ -496,21 +474,63 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
 
         {/* Right Aside: Briefing, 24h admits, today's schedule */}
         <div className="lg:col-span-4 space-y-4">
-          {/* Quick Giao Ban report */}
-          <div className="bg-white p-4 rounded-2xl border border-[#DDE1DC] shadow-xs space-y-2.5">
+          {/* Ô: Ngày điều trị trung bình dựa vào trung bình thực tế trong 7 ngày */}
+          <div className="bg-white p-4 rounded-2xl border border-[#DDE1DC] shadow-xs space-y-3">
             <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-sm text-[#0F2F2A]">Báo cáo giao ban</h3>
-                <p className="text-xs text-[#56615C]">Tổng hợp nhanh tình hình khoa phòng</p>
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 text-[#0E6B5E] flex items-center justify-center font-bold shrink-0">
+                  <Clock className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-[#0F2F2A] leading-tight">
+                    Ngày điều trị trung bình
+                  </h3>
+                  <p className="text-[11px] text-[#56615C]">Thực tế 7 ngày gần nhất</p>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={handleCopyGb}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-semibold shadow-xs transition-colors"
-              >
-                {copiedGb ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                {copiedGb ? 'Đã sao chép' : 'Sao chép'}
-              </button>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#E4F0EC] text-[#0B5C51]">
+                7 ngày qua
+              </span>
+            </div>
+
+            <div className="flex items-baseline gap-2">
+              <span className="text-3xl font-extrabold text-[#0E6B5E] tracking-tight">
+                {primaryAvgFormatted}
+              </span>
+              <span className="text-xs font-semibold text-gray-600">ngày / bệnh nhân</span>
+            </div>
+
+            <div className="pt-2.5 border-t border-[#EEF0ED] space-y-1.5 text-xs text-[#56615C]">
+              {hasOutData ? (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span>Số ca ra viện 7 ngày:</span>
+                    <strong className="text-[#0F2F2A]">{out7DaysPatients.length} ca</strong>
+                  </div>
+                  {minStay !== null && maxStay !== null && (
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span>Khoảng thời gian nằm:</span>
+                      <span className="text-[#3A4540] font-medium">{minStay} - {maxStay} ngày</span>
+                    </div>
+                  )}
+                  {avgActiveStay !== null && (
+                    <div className="flex items-center justify-between text-[11px] text-gray-500">
+                      <span>Ca đang điều trị (n={activePatients.length}):</span>
+                      <span>TB {(Math.round(avgActiveStay * 10) / 10).toFixed(1)} ngày</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <span>Bệnh nhân đang điều trị:</span>
+                    <strong className="text-[#0F2F2A]">{activePatients.length} bệnh nhân</strong>
+                  </div>
+                  <p className="text-[11px] text-gray-500 italic">
+                    (Chưa có ca ra viện trong 7 ngày, tính theo ngày nằm trung bình hiện tại)
+                  </p>
+                </>
+              )}
             </div>
           </div>
 
