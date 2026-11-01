@@ -92,10 +92,10 @@ export const ExpandableTreatmentInput: React.FC<ExpandableTreatmentInputProps> =
               type="button"
               onClick={() => setIsExpanded(true)}
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#0E6B5E] hover:underline cursor-pointer"
-              title="Bấm để mở rộng xem đầy đủ nội dung"
+              title="Mở rộng"
             >
               <Maximize2 className="w-3 h-3" />
-              <span>Xem đầy đủ ({lineCount} dòng)</span>
+              <span>Mở rộng</span>
             </button>
           )
         )}
@@ -118,18 +118,6 @@ export const ExpandableTreatmentInput: React.FC<ExpandableTreatmentInputProps> =
             }}
             className={`w-full px-3 py-2.5 rounded-xl border border-[#0E6B5E] ring-2 ring-[#0E6B5E]/20 text-xs text-gray-800 leading-relaxed focus:outline-none resize-y ${minHeight} bg-white shadow-xs`}
           />
-
-          <div className="flex items-center justify-between text-[11px] text-gray-400 px-1 select-none">
-            <span className="flex items-center gap-1">
-              <span>💡</span>
-              <span>Click chuột chỗ khác để ẩn gọn lại</span>
-            </span>
-            {lineCount > 0 && (
-              <span className="text-[#0E6B5E] font-medium">
-                {lineCount} dòng y lệnh
-              </span>
-            )}
-          </div>
         </div>
       ) : (
         /* COLLAPSED STATE: Slim Compact 1-line Field */
@@ -144,7 +132,6 @@ export const ExpandableTreatmentInput: React.FC<ExpandableTreatmentInputProps> =
             }
           }}
           className="w-full min-h-[38px] px-3 py-2 rounded-xl border border-[#C3CAC4] bg-gray-50/70 hover:bg-white hover:border-[#0E6B5E]/60 focus:border-[#0E6B5E] focus:ring-1 focus:ring-[#0E6B5E] transition-all cursor-pointer flex items-center justify-between gap-2 shadow-2xs group select-none"
-          title="Bấm vào đây để mở rộng soạn thảo xử trí y lệnh"
         >
           <div className="flex items-center gap-2 overflow-hidden flex-1">
             {value.trim() ? (
@@ -153,20 +140,14 @@ export const ExpandableTreatmentInput: React.FC<ExpandableTreatmentInputProps> =
               </span>
             ) : (
               <span className="text-xs text-gray-400 truncate">
-                {placeholder} (bấm để mở rộng)...
+                {placeholder}
               </span>
             )}
           </div>
 
           <div className="flex items-center gap-1.5 shrink-0">
-            {value.trim() && (
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200">
-                Đã nhập xử trí
-              </span>
-            )}
             <div
               className="p-1 rounded-md text-gray-400 group-hover:text-[#0E6B5E] transition-colors"
-              title="Mở rộng để xem đầy đủ"
             >
               <Maximize2 className="w-3.5 h-3.5" />
             </div>

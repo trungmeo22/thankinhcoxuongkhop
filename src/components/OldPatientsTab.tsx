@@ -97,14 +97,11 @@ export const OldPatientsTab: React.FC<OldPatientsTabProps> = ({
           <div>
             <h2 className="text-base md:text-lg font-bold text-[#0F2F2A] flex items-center gap-2">
               <Archive className="w-5 h-5 text-[#0E6B5E]" />
-              <span>Danh sách Bệnh nhân cũ (Đã ra viện)</span>
+              <span>Bệnh nhân cũ</span>
               <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-100 text-[#0E6B5E] font-bold">
-                {allDischarged.length} ca
+                {allDischarged.length}
               </span>
             </h2>
-            <p className="text-xs text-[#56615C] mt-0.5">
-              Hồ sơ lưu trữ đầy đủ lịch sử DHST, đường huyết & điều trị. Có thể khôi phục lại bất kỳ lúc nào nếu người bệnh tiếp tục điều trị.
-            </p>
           </div>
         </div>
 

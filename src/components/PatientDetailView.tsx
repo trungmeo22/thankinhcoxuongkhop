@@ -237,7 +237,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
           }`}
         >
           <Syringe className="w-4 h-4" />
-          <span>2. Bảng theo dõi Đường huyết & Insulin ({patientGlucose.length})</span>
+          <span>2. Đường huyết & Insulin ({patientGlucose.length})</span>
         </button>
       </div>
       {/* TAB 1: THẺ XEM DHST / DIỄN BIẾN */}
@@ -245,8 +245,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
         <div className="space-y-4 animate-in fade-in duration-150">
           <div className="flex items-center justify-between bg-white p-3.5 rounded-2xl border border-[#DDE1DC] shadow-xs">
             <div>
-              <h3 className="text-sm font-bold text-[#0F2F2A]">Lịch sử theo dõi DHST & Diễn biến lâm sàng</h3>
-              <p className="text-xs text-[#56615C]">Tổng cộng {vitalsTimeline.length} lần ghi nhận</p>
+              <h3 className="text-sm font-bold text-[#0F2F2A]">Lịch sử theo dõi DHST & Diễn biến</h3>
             </div>
             {isIn(patient) && (
               <button
@@ -255,7 +254,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold transition-colors shadow-xs cursor-pointer active:scale-95"
               >
                 <Plus className="w-4 h-4" />
-                <span>Ghi DHST / Diễn biến mới</span>
+                <span>Ghi DHST / Diễn biến</span>
               </button>
             )}
           </div>
@@ -269,7 +268,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
         </div>
       )}
 
-      {/* TAB 3: THẺ THEO DÕI ĐƯỜNG HUYẾT & INSULIN */}
+      {/* TAB 2: THẺ THEO DÕI ĐƯỜNG HUYẾT & INSULIN */}
       {activeTab === 'glucose' && (
         <div className="space-y-4 animate-in fade-in duration-150">
           {/* Action Header */}
@@ -277,11 +276,8 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
             <div>
               <h3 className="text-sm font-bold text-[#0F2F2A] flex items-center gap-2">
                 <Syringe className="w-4 h-4 text-emerald-700" />
-                <span>Bảng theo dõi Đường huyết mao mạch & Tiêm Insulin</span>
+                <span>Đường huyết & Tiêm Insulin</span>
               </h3>
-              <p className="text-xs text-[#56615C]">
-                Theo dõi theo ngày các mốc 6h, 11h, 17h, 21h hoặc giờ chỉ định riêng
-              </p>
             </div>
 
             <button
@@ -293,7 +289,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
               className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold transition-colors shadow-xs cursor-pointer active:scale-95"
             >
               <Plus className="w-4 h-4" />
-              <span>Thêm lần test đường huyết</span>
+              <span>Thêm test đường huyết</span>
             </button>
           </div>
 

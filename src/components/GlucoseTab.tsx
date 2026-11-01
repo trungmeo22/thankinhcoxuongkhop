@@ -190,11 +190,8 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
           </div>
           <div>
             <h2 className="text-base md:text-lg font-bold text-[#0F2F2A] leading-tight">
-              Lịch sử Báo Đường huyết & Tiêm Insulin toàn khoa
+              Báo đường huyết
             </h2>
-            <p className="text-xs text-[#56615C]">
-              Bấm vào từng bệnh nhân để xem toàn bộ lịch sử test và tiêm insulin theo từng ngày
-            </p>
           </div>
         </div>
 

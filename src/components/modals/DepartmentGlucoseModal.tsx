@@ -112,11 +112,8 @@ export const DepartmentGlucoseModal: React.FC<DepartmentGlucoseModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-[#0F2F2A] leading-tight">
-                Ghi nhận Đường huyết & Tiêm Insulin
+                Ghi đường huyết & Tiêm Insulin
               </h2>
-              <p className="text-xs text-[#56615C]">
-                Theo dõi đường huyết chung cho bệnh nhân khoa
-              </p>
             </div>
           </div>
           <button

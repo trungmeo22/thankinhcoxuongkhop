@@ -253,7 +253,7 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
             className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#0E6B5E] text-white text-xs font-bold hover:bg-[#0A5248] cursor-pointer shadow-xs"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Ghi nhận lần test đầu tiên</span>
+            <span>Thêm test</span>
           </button>
         )}
       </div>
@@ -267,10 +267,7 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
         <div className="flex items-center gap-2">
           <span className="font-bold text-[#0F2F2A] flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-[#0E6B5E]" />
-            <span>Lịch sử test ({dateGroups.length} ngày · {sortedRecords.length} lần test)</span>
-          </span>
-          <span className="text-[11px] text-gray-400 hidden sm:inline">
-            (Kéo chuột hoặc vuốt để trượt theo dòng thời gian)
+            <span>Lịch sử test</span>
           </span>
         </div>
 

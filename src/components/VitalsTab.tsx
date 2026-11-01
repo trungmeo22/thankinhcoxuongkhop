@@ -144,8 +144,7 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
             </button>
           )}
           <div>
-            <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">DHST & diễn biến theo phòng</h2>
-            <p className="text-xs text-[#56615C] mt-0.5">{dayTitle} · Chỉ số bất thường được tô màu cam</p>
+            <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">DHST / Diễn biến</h2>
           </div>
         </div>
 
@@ -300,7 +299,7 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
                           </div>
                         ) : !records.length ? (
                           <div className="text-xs text-[#8A948F] italic py-1">
-                            Chưa ghi dấu hiệu sinh tồn trong ngày này. (Bấm "Dòng thời gian" để xem tất cả các ngày)
+                            Chưa ghi nhận DHST trong ngày này.
                           </div>
                         ) : (
                           <div className="border border-[#E6E9E5] rounded-xl overflow-hidden">

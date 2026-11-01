@@ -308,9 +308,6 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
           <HeartPulse className="w-6 h-6" />
         </div>
         <h4 className="text-sm font-bold text-gray-800">Chưa có kết quả DHST & Diễn biến</h4>
-        <p className="text-xs text-gray-500 max-w-sm mx-auto">
-          Bệnh nhân này chưa được ghi nhận mốc dấu hiệu sinh tồn nào. Hãy bấm nút dưới đây để bắt đầu theo dõi.
-        </p>
         {onAddVitals && (
           <button
             type="button"
@@ -318,7 +315,7 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0E6B5E] text-white text-xs font-bold hover:bg-[#0A5248] cursor-pointer shadow-xs"
           >
             <Plus className="w-4 h-4" />
-            <span>Ghi nhận lần đầu tiên</span>
+            <span>Ghi DHST</span>
           </button>
         )}
       </div>
@@ -333,11 +330,8 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
           <span className="font-bold text-[#0F2F2A] flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-[#0E6B5E]" />
             <span>
-              Lịch sử DHST & Diễn biến ({dateGroups.length} ngày · {sortedItems.length} lần ghi)
+              Lịch sử DHST & Diễn biến
             </span>
-          </span>
-          <span className="text-[11px] text-gray-400 hidden sm:inline">
-            (Kéo chuột hoặc vuốt để trượt theo dòng thời gian)
           </span>
         </div>
 

@@ -296,10 +296,7 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
                           {isPending ? 'Chờ ' : 'Đã '}
                           {KIND_LABELS[kind].toLowerCase()}
                         </span>
-                        <span className="text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold border border-emerald-100 flex items-center gap-0.5 opacity-90 group-hover:opacity-100">
-                          <span>Chi tiết hồ sơ</span>
-                          <ChevronRight className="w-3 h-3" />
-                        </span>
+                        <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#0E6B5E] transition-colors" />
                       </div>
 
                       <div className="text-xs text-[#2B3531] mt-0.5">
@@ -365,10 +362,7 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
             <span className="font-bold text-sm text-[#17201D] group-hover:text-[#0E6B5E] transition-colors">
               {p.name}
             </span>
-            <span className="text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold border border-emerald-100 flex items-center gap-0.5 opacity-90 group-hover:opacity-100">
-              <span>Chi tiết hồ sơ</span>
-              <ChevronRight className="w-3 h-3" />
-            </span>
+            <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#0E6B5E] transition-colors" />
           </div>
           <div className="text-[11px] text-[#56615C]">
             {ageText(p)} · vào {hm(p.admitAt)} · {dm(p.admitAt)}

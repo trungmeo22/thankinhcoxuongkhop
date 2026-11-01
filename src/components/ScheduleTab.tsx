@@ -78,8 +78,7 @@ export const ScheduleTab: React.FC<ScheduleTabProps> = ({
             </button>
           )}
           <div>
-            <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">Lịch tiêm khớp & điện cơ</h2>
-            <p className="text-xs text-[#56615C] mt-0.5">Sắp xếp theo ngày thực hiện · Đánh dấu khi hoàn thành thủ thuật</p>
+            <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">Lịch chỉ định</h2>
           </div>
         </div>
 
