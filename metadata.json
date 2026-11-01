@@ -1,0 +1,6 @@
+{
+  "name": "Đơn nguyên Cơ xương khớp",
+  "description": "Hệ thống quản lý điều trị, theo dõi bệnh nhân, dấu hiệu sinh tồn, lịch tiêm khớp/điện cơ và báo cáo trực lâm sàng dành cho Đơn nguyên Cơ xương khớp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

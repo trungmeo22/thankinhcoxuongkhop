@@ -1,0 +1,110 @@
+{
+  "entities": {
+    "Patient": {
+      "title": "Patient",
+      "description": "Inpatient clinical record in the Rheumatology unit",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number", "description": "Unique numeric ID" },
+        "name": { "type": "string", "description": "Patient full name", "maxLength": 128 },
+        "age": { "type": "string", "description": "Patient age", "maxLength": 10 },
+        "room": { "type": "string", "description": "Room number", "maxLength": 30 },
+        "note": { "type": "string", "description": "Admission note", "maxLength": 1000 },
+        "admitAt": { "type": "number", "description": "Timestamp of admission" },
+        "status": { "type": "string", "description": "Inpatient status: in or out", "enum": ["in", "out"] },
+        "outAt": { "type": "number", "description": "Timestamp of discharge" },
+        "outNote": { "type": "string", "description": "Discharge note", "maxLength": 1000 },
+        "outKind": { "type": "string", "description": "Discharge kind: ra, ck, cv", "enum": ["ra", "ck", "cv"] },
+        "pulse": { "type": "string", "maxLength": 20 },
+        "bp": { "type": "string", "maxLength": 20 },
+        "temp": { "type": "string", "maxLength": 20 },
+        "spo2": { "type": "string", "maxLength": 20 },
+        "rr": { "type": "string", "maxLength": 20 }
+      },
+      "required": ["id", "name", "room", "admitAt", "status"]
+    },
+    "VitalRecord": {
+      "title": "VitalRecord",
+      "description": "Vital signs and clinical progress record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number" },
+        "pid": { "type": "number" },
+        "at": { "type": "number" },
+        "pulse": { "type": "string", "maxLength": 20 },
+        "bp": { "type": "string", "maxLength": 20 },
+        "temp": { "type": "string", "maxLength": 20 },
+        "spo2": { "type": "string", "maxLength": 20 },
+        "rr": { "type": "string", "maxLength": 20 },
+        "note": { "type": "string", "maxLength": 1000 },
+        "abn": { "type": "boolean" }
+      },
+      "required": ["id", "pid", "at"]
+    },
+    "ScheduleItem": {
+      "title": "ScheduleItem",
+      "description": "Procedure or injection schedule",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number" },
+        "type": { "type": "string", "enum": ["tiem", "dien"] },
+        "patientId": { "type": "number" },
+        "site": { "type": "string", "maxLength": 100 },
+        "date": { "type": "string", "maxLength": 20 },
+        "time": { "type": "string", "maxLength": 20 },
+        "who": { "type": "string", "maxLength": 100 },
+        "note": { "type": "string", "maxLength": 500 },
+        "done": { "type": "boolean" }
+      },
+      "required": ["id", "type", "patientId", "site", "date", "time"]
+    },
+    "DutyReport": {
+      "title": "DutyReport",
+      "description": "Saved clinical duty and shift report",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number" },
+        "savedAt": { "type": "number" },
+        "date": { "type": "string", "maxLength": 20 },
+        "doctor": { "type": "string", "maxLength": 100 },
+        "nurse": { "type": "string", "maxLength": 100 },
+        "text": { "type": "string", "maxLength": 10000 }
+      },
+      "required": ["id", "savedAt", "date", "doctor"]
+    },
+    "Setting": {
+      "title": "Setting",
+      "description": "Department unit settings",
+      "type": "object",
+      "properties": {
+        "beds": { "type": "number" },
+        "rooms": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "/patients/{patientId}": {
+      "schema": "Patient",
+      "description": "Patients collection"
+    },
+    "/recs/{recId}": {
+      "schema": "VitalRecord",
+      "description": "Vital records collection"
+    },
+    "/scheds/{schedId}": {
+      "schema": "ScheduleItem",
+      "description": "Procedures schedule collection"
+    },
+    "/reports/{reportId}": {
+      "schema": "DutyReport",
+      "description": "Duty reports collection"
+    },
+    "/settings/{settingId}": {
+      "schema": "Setting",
+      "description": "App settings collection"
+    }
+  }
+}

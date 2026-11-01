@@ -1,0 +1,26 @@
+{
+  "name": "Đơn nguyên Cơ xương khớp",
+  "short_name": "Cơ Xương Khớp",
+  "description": "Quản lý điều trị, DHST, thủ thuật và báo cáo trực lâm sàng Đơn nguyên Cơ xương khớp",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
+  "background_color": "#0F2F2A",
+  "theme_color": "#0F2F2A",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "/img/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/img/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
