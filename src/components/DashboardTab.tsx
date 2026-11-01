@@ -15,7 +15,23 @@ import {
   dmy,
   vitalLine
 } from '../lib/constants';
-import { Bed, UserPlus, UserMinus, Syringe, Copy, Check, ArrowRight, ShieldCheck, LogOut } from 'lucide-react';
+import {
+  Bed,
+  UserPlus,
+  UserMinus,
+  Syringe,
+  Copy,
+  Check,
+  ArrowRight,
+  ShieldCheck,
+  LogOut,
+  Users,
+  HeartPulse,
+  FileText,
+  CalendarClock,
+  Archive
+} from 'lucide-react';
+import { TabKey } from './Navigation';
 
 interface DashboardTabProps {
   patients: Patient[];
@@ -26,6 +42,8 @@ interface DashboardTabProps {
   onGoToSchedule: () => void;
   onOpenDischargedList: () => void;
   onSignOut: () => void;
+  onSelectTab?: (tab: TabKey) => void;
+  todayGlucoseCount?: number;
   userEmail?: string | null;
 }
 
@@ -38,6 +56,8 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   onGoToSchedule,
   onOpenDischargedList,
   onSignOut,
+  onSelectTab,
+  todayGlucoseCount = 0,
   userEmail,
 }) => {
   const now = Date.now();
@@ -148,6 +168,142 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
 
   return (
     <div className="space-y-5">
+      {/* Mobile Navigation Hub: Lưới các nút lớn ngay trên trang chính trên mobile */}
+      <div className="block md:hidden space-y-2.5">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs font-bold text-[#0F2F2A] uppercase tracking-wider">
+            Chức năng chính
+          </span>
+          <span className="text-[11px] text-gray-500">Chạm để mở nhanh</span>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2.5">
+          {/* Nút 1: Bệnh nhân */}
+          <button
+            type="button"
+            onClick={onGoToPatients}
+            className="p-3.5 rounded-2xl bg-white border border-[#DDE1DC] shadow-xs hover:border-[#0E6B5E] text-left transition-all active:scale-95 flex flex-col justify-between min-h-[96px] cursor-pointer"
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-[#0E6B5E] flex items-center justify-center font-bold">
+                <Users className="w-5 h-5" />
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#E4F0EC] text-[#0B5C51]">
+                {activeCount} BN
+              </span>
+            </div>
+            <div>
+              <strong className="text-xs font-bold text-[#0F2F2A] block">Bệnh nhân</strong>
+              <span className="text-[10px] text-[#56615C]">Danh sách & điều trị</span>
+            </div>
+          </button>
+
+          {/* Nút 2: DHST & Diễn biến */}
+          <button
+            type="button"
+            onClick={() => onSelectTab && onSelectTab('dhst')}
+            className="p-3.5 rounded-2xl bg-white border border-[#DDE1DC] shadow-xs hover:border-[#0E6B5E] text-left transition-all active:scale-95 flex flex-col justify-between min-h-[96px] cursor-pointer"
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold">
+                <HeartPulse className="w-5 h-5" />
+              </div>
+            </div>
+            <div>
+              <strong className="text-xs font-bold text-[#0F2F2A] block">DHST / Diễn biến</strong>
+              <span className="text-[10px] text-[#56615C]">Đo sinh tồn & xử trí</span>
+            </div>
+          </button>
+
+          {/* Nút 3: Báo đường huyết */}
+          <button
+            type="button"
+            onClick={() => onSelectTab && onSelectTab('duonghuyet')}
+            className="p-3.5 rounded-2xl bg-white border border-[#DDE1DC] shadow-xs hover:border-[#0E6B5E] text-left transition-all active:scale-95 flex flex-col justify-between min-h-[96px] cursor-pointer"
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold">
+                <Syringe className="w-5 h-5" />
+              </div>
+              {todayGlucoseCount > 0 ? (
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900">
+                  {todayGlucoseCount} test
+                </span>
+              ) : (
+                <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded">
+                  Toàn khoa
+                </span>
+              )}
+            </div>
+            <div>
+              <strong className="text-xs font-bold text-[#0F2F2A] block">Báo đường huyết</strong>
+              <span className="text-[10px] text-[#56615C]">Test ĐH & tiêm Insulin</span>
+            </div>
+          </button>
+
+          {/* Nút 4: Báo cáo trực */}
+          <button
+            type="button"
+            onClick={() => onSelectTab && onSelectTab('truc')}
+            className="p-3.5 rounded-2xl bg-white border border-[#DDE1DC] shadow-xs hover:border-[#0E6B5E] text-left transition-all active:scale-95 flex flex-col justify-between min-h-[96px] cursor-pointer"
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold">
+                <FileText className="w-5 h-5" />
+              </div>
+            </div>
+            <div>
+              <strong className="text-xs font-bold text-[#0F2F2A] block">Báo cáo trực</strong>
+              <span className="text-[10px] text-[#56615C]">Giao ban & ca trực</span>
+            </div>
+          </button>
+
+          {/* Nút 5: Lịch chỉ định */}
+          <button
+            type="button"
+            onClick={onGoToSchedule}
+            className="p-3.5 rounded-2xl bg-white border border-[#DDE1DC] shadow-xs hover:border-[#0E6B5E] text-left transition-all active:scale-95 flex flex-col justify-between min-h-[96px] cursor-pointer"
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="w-10 h-10 rounded-xl bg-sky-100 text-sky-800 flex items-center justify-center font-bold">
+                <CalendarClock className="w-5 h-5" />
+              </div>
+              {pendingProcToday > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#F0A061] text-[#2A1404]">
+                  {pendingProcToday} chờ
+                </span>
+              )}
+            </div>
+            <div>
+              <strong className="text-xs font-bold text-[#0F2F2A] block">Lịch chỉ định</strong>
+              <span className="text-[10px] text-[#56615C]">Tiêm & Điện châm</span>
+            </div>
+          </button>
+
+          {/* Nút 6: Bệnh nhân cũ */}
+          <button
+            type="button"
+            onClick={onOpenDischargedList}
+            className="p-3.5 rounded-2xl bg-white border border-[#DDE1DC] shadow-xs hover:border-[#0E6B5E] text-left transition-all active:scale-95 flex flex-col justify-between min-h-[96px] cursor-pointer"
+          >
+            <div className="flex items-center justify-between w-full">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 text-[#0E6B5E] flex items-center justify-center font-bold">
+                <Archive className="w-5 h-5" />
+              </div>
+              {pendingDischarges > 0 && (
+                <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900">
+                  {pendingDischarges} chờ
+                </span>
+              )}
+            </div>
+            <div>
+              <strong className="text-xs font-bold text-[#0F2F2A] block">Bệnh nhân cũ</strong>
+              <span className="text-[10px] text-[#56615C]">Lưu trữ & khôi phục</span>
+            </div>
+          </button>
+        </div>
+      </div>
+
       {/* KPI Cards Grid (3 cards) */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
         {/* Bed occupancy */}

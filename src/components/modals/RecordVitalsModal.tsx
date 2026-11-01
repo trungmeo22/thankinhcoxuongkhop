@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Patient, VitalRecord } from '../../types';
 import { hm, dmy, ageText, fold, hasVit, uid } from '../../lib/constants';
 import { X, Clock, AlertCircle, HeartPulse, Search } from 'lucide-react';
+import { ExpandableTreatmentInput } from '../ExpandableTreatmentInput';
 
 interface RecordVitalsModalProps {
   initialPatient?: Patient | null;
@@ -26,7 +27,6 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
   const [note, setNote] = useState('');
   const [abn, setAbn] = useState(false);
   const [abnTouched, setAbnTouched] = useState(false);
-  const [showTx, setShowTx] = useState(false);
   const [txText, setTxText] = useState('');
   const [err, setErr] = useState('');
 
@@ -270,28 +270,10 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
           </label>
 
           {/* Treatment Orders (Xử trí) */}
-          {showTx ? (
-            <div className="space-y-1">
-              <label className="block font-semibold text-[#0B5C51]">
-                Nội dung xử trí y lệnh / can thiệp
-              </label>
-              <textarea
-                rows={2}
-                placeholder="Thuốc hạ sốt, giảm đau, truyền dịch, chỉ định xét nghiệm thêm..."
-                value={txText}
-                onChange={(e) => setTxText(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none resize-y"
-              />
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowTx(true)}
-              className="text-xs text-[#0B5C51] font-semibold hover:underline"
-            >
-              + Thêm xử trí y lệnh
-            </button>
-          )}
+          <ExpandableTreatmentInput
+            value={txText}
+            onChange={setTxText}
+          />
 
           {err && (
             <div className="flex items-center gap-1.5 p-2.5 rounded-xl bg-red-50 text-red-700 text-xs">

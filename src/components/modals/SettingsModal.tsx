@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
 import { Patient } from '../../types';
-import { DEFAULT_ROOMS } from '../../lib/constants';
-import { X, Bed, Plus, RotateCcw, AlertCircle, CheckCircle2, Settings as SettingsIcon, Info } from 'lucide-react';
+import { DEFAULT_ROOMS, DEFAULT_INSULINS } from '../../lib/constants';
+import { X, Bed, Plus, RotateCcw, AlertCircle, CheckCircle2, Settings as SettingsIcon, Info, Syringe } from 'lucide-react';
 
 interface SettingsModalProps {
   currentBeds: number;
   currentRooms: string[];
+  currentInsulins?: string[];
   patients: Patient[];
   onClose: () => void;
-  onSave: (beds: number, rooms: string[]) => void;
+  onSave: (beds: number, rooms: string[], insulins?: string[]) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   currentBeds,
   currentRooms,
+  currentInsulins,
   patients,
   onClose,
   onSave,
@@ -22,7 +24,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [rooms, setRooms] = useState<string[]>(
     currentRooms && currentRooms.length ? [...currentRooms] : [...DEFAULT_ROOMS]
   );
+  const [insulins, setInsulins] = useState<string[]>(
+    currentInsulins && currentInsulins.length ? [...currentInsulins] : [...DEFAULT_INSULINS]
+  );
   const [newRoom, setNewRoom] = useState('');
+  const [newInsulin, setNewInsulin] = useState('');
   const [err, setErr] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -76,6 +82,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setNotice('Đã khôi phục danh mục buồng phòng mặc định (P.301 - P.306).');
   };
 
+  const handleAddInsulin = () => {
+    const target = newInsulin.trim();
+    if (!target) return;
+
+    if (insulins.some((i) => i.trim().toLowerCase() === target.toLowerCase())) {
+      setErr(`Loại insulin "${target}" đã có trong danh mục.`);
+      setNotice('');
+      return;
+    }
+
+    setErr('');
+    setInsulins([...insulins, target]);
+    setNewInsulin('');
+    setNotice(`Đã thêm loại insulin "${target}" vào danh mục.`);
+  };
+
+  const handleRemoveInsulin = (insToRemove: string) => {
+    if (insulins.length <= 1) {
+      setErr('Danh mục phải giữ lại ít nhất 1 loại insulin.');
+      setNotice('');
+      return;
+    }
+
+    setInsulins((prev) => prev.filter((i) => i.trim().toLowerCase() !== insToRemove.trim().toLowerCase()));
+    setErr('');
+    setNotice(`Đã xóa "${insToRemove}" khỏi danh mục insulin.`);
+  };
+
+  const handleResetInsulins = () => {
+    setInsulins([...DEFAULT_INSULINS]);
+    setErr('');
+    setNotice('Đã khôi phục danh mục insulin mặc định.');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (beds < 1) {
@@ -86,8 +126,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setErr('Phải có ít nhất 1 phòng điều trị.');
       return;
     }
+    if (!insulins.length) {
+      setErr('Phải có ít nhất 1 loại insulin trong danh mục.');
+      return;
+    }
     setErr('');
-    onSave(beds, rooms);
+    onSave(beds, rooms, insulins);
     onClose();
   };
 
@@ -102,9 +146,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             <div>
               <h2 className="text-base font-bold text-[#0F2F2A]">
-                Cài đặt khoa phòng & Giường bệnh
+                Cài đặt khoa phòng, Giường bệnh & Insulin
               </h2>
-              <p className="text-xs text-gray-500">Cập nhật công suất giường và danh mục phòng điều trị</p>
+              <p className="text-xs text-gray-500">Cập nhật công suất giường, danh mục phòng & loại insulin</p>
             </div>
           </div>
           <button
@@ -231,6 +275,92 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 <Plus className="w-4 h-4" />
                 Thêm phòng
+              </button>
+            </div>
+          </div>
+
+          {/* Insulin management */}
+          <div className="p-3.5 rounded-xl bg-[#F9FAF9] border border-[#E6E9E5] space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Syringe className="w-4 h-4 text-[#0E6B5E]" />
+                <div>
+                  <h3 className="font-bold text-sm text-[#0F2F2A]">
+                    Danh mục Insulin ({insulins.length})
+                  </h3>
+                  <p className="text-[11px] text-[#56615C]">
+                    Các loại Insulin hiển thị trong menu chọn nhanh khi ghi nhận đường huyết
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleResetInsulins}
+                className="text-[11px] text-gray-500 hover:text-[#0E6B5E] font-medium flex items-center gap-1 cursor-pointer hover:underline px-2 py-1 rounded hover:bg-gray-100"
+                title="Khôi phục lại danh sách Insulin mặc định"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Mặc định
+              </button>
+            </div>
+
+            {/* Insulin chips */}
+            <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1.5 bg-white rounded-xl border border-[#E6E9E5]">
+              {insulins.length === 0 ? (
+                <p className="text-gray-400 italic text-center w-full py-2">Chưa có loại insulin nào. Vui lòng thêm ít nhất 1 loại.</p>
+              ) : (
+                insulins.map((ins) => (
+                  <div
+                    key={ins}
+                    className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 text-xs font-semibold text-sky-900 transition-colors group"
+                  >
+                    <span>{ins}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleRemoveInsulin(ins);
+                      }}
+                      className="w-5 h-5 flex items-center justify-center rounded-md text-sky-400 hover:text-white hover:bg-red-500 transition-all cursor-pointer ml-0.5 active:scale-90"
+                      title={`Xóa loại insulin ${ins}`}
+                      aria-label={`Xóa loại insulin ${ins}`}
+                    >
+                      <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Add insulin input */}
+            <div className="flex items-center gap-2 pt-2 border-t border-[#EEF0ED]">
+              <input
+                type="text"
+                placeholder="Nhập tên loại Insulin mới (VD: Ryzodeg, Toujeo...)"
+                value={newInsulin}
+                onChange={(e) => {
+                  setNewInsulin(e.target.value);
+                  setErr('');
+                  setNotice('');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddInsulin();
+                  }
+                }}
+                className="flex-1 px-3 py-1.5 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-white font-medium"
+              />
+              <button
+                type="button"
+                onClick={() => handleAddInsulin()}
+                disabled={!newInsulin.trim()}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                Thêm loại
               </button>
             </div>
           </div>

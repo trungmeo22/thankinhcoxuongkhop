@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Patient, VitalRecord, ScheduleItem, DutyReport, DischargeKind } from './types';
+import { Patient, VitalRecord, ScheduleItem, DutyReport, DischargeKind, GlucoseRecord } from './types';
 import {
   auth,
   db,
@@ -13,6 +13,8 @@ import {
   saveReportToFirestore,
   deleteReportFromFirestore,
   saveSettingsToFirestore,
+  saveGlucoseToFirestore,
+  deleteGlucoseFromFirestore,
   handleFirestoreError
 } from './lib/firebase';
 import {
@@ -37,6 +39,8 @@ import { PatientsTab } from './components/PatientsTab';
 import { VitalsTab } from './components/VitalsTab';
 import { DutyTab } from './components/DutyTab';
 import { ScheduleTab } from './components/ScheduleTab';
+import { GlucoseTab } from './components/GlucoseTab';
+import { OldPatientsTab } from './components/OldPatientsTab';
 
 // Modals
 import { AdmitModal } from './components/modals/AdmitModal';
@@ -49,7 +53,7 @@ import { LoginModal } from './components/modals/LoginModal';
 import { SettingsModal } from './components/modals/SettingsModal';
 
 import { Plus } from 'lucide-react';
-import { DEFAULT_ROOMS } from './lib/constants';
+import { DEFAULT_ROOMS, DEFAULT_INSULINS } from './lib/constants';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -62,8 +66,10 @@ export default function App() {
   const [recs, setRecs] = useState<VitalRecord[]>([]);
   const [scheds, setScheds] = useState<ScheduleItem[]>([]);
   const [reports, setReports] = useState<DutyReport[]>([]);
+  const [glucoseRecords, setGlucoseRecords] = useState<GlucoseRecord[]>([]);
   const [beds, setBeds] = useState<number>(30);
   const [rooms, setRooms] = useState<string[]>(DEFAULT_ROOMS);
+  const [insulins, setInsulins] = useState<string[]>(DEFAULT_INSULINS);
   const [syncStatus, setSyncStatus] = useState<'ok' | 'saving' | 'err'>('ok');
 
   // Modals state
@@ -87,6 +93,7 @@ export default function App() {
   const [viewTargetReport, setViewTargetReport] = useState<DutyReport | null>(null);
 
   const [initialShowDischarged, setInitialShowDischarged] = useState(false);
+  const [selectedPatientId, setSelectedPatientId] = useState<number | null>(null);
 
   // Time ticker
   const [now, setNow] = useState<number>(Date.now());
@@ -122,9 +129,13 @@ export default function App() {
     setRecs(local.recs || []);
     setScheds(local.scheds || []);
     setReports(local.reports || []);
+    setGlucoseRecords(local.glucoseRecords || []);
     setBeds(local.beds || 30);
     if (local.rooms && local.rooms.length > 0) {
       setRooms(local.rooms);
+    }
+    if (local.insulins && local.insulins.length > 0) {
+      setInsulins(local.insulins);
     }
   }, []);
 
@@ -191,6 +202,7 @@ export default function App() {
         }
 
         setRecs(list);
+        saveLocalData({ recs: list });
       },
       (err) => {
         console.warn('Recs snapshot error:', err);
@@ -220,6 +232,7 @@ export default function App() {
         }
 
         setScheds(list);
+        saveLocalData({ scheds: list });
       },
       (err) => {
         console.warn('Scheds snapshot error:', err);
@@ -250,6 +263,7 @@ export default function App() {
 
         list.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
         setReports(list);
+        saveLocalData({ reports: list });
       },
       (err) => {
         console.warn('Reports snapshot error:', err);
@@ -270,9 +284,13 @@ export default function App() {
             if (Array.isArray(data.rooms) && data.rooms.length > 0) {
               setRooms(data.rooms);
             }
+            if (Array.isArray(data.insulins) && data.insulins.length > 0) {
+              setInsulins(data.insulins);
+            }
+            saveLocalData({ beds: data.beds, rooms: data.rooms, insulins: data.insulins });
           }
         } else {
-          saveSettingsToFirestore({ beds: 30, rooms: DEFAULT_ROOMS });
+          saveSettingsToFirestore({ beds: 30, rooms: DEFAULT_ROOMS, insulins: DEFAULT_INSULINS });
         }
       },
       (err) => {
@@ -280,6 +298,23 @@ export default function App() {
       }
     );
     unsubs.push(unsubsSettings);
+
+    // 6. Glucose records collection
+    const unsubsGlucose = onSnapshot(
+      collection(db, 'glucose_records'),
+      (snapshot) => {
+        const list: GlucoseRecord[] = [];
+        snapshot.forEach((doc) => {
+          list.push(doc.data() as GlucoseRecord);
+        });
+        setGlucoseRecords(list);
+        saveLocalData({ glucoseRecords: list });
+      },
+      (err) => {
+        console.warn('Glucose snapshot error:', err);
+      }
+    );
+    unsubs.push(unsubsGlucose);
 
     return () => {
       unsubs.forEach((unsub) => unsub());
@@ -298,7 +333,7 @@ export default function App() {
     setCurrentUser(null);
   };
 
-  const handleDemoLogin = () => {
+  const handlePasswordLoginSuccess = () => {
     setLocalAuthenticated(true);
     setIsDemoUser(true);
   };
@@ -481,6 +516,7 @@ export default function App() {
         status: 'in' as const,
         outAt: null,
         outNote: '',
+        outKind: undefined,
       };
       return updatedPt;
     });
@@ -521,15 +557,46 @@ export default function App() {
     }
   };
 
-  const handleSaveSettings = async (newBeds: number, newRooms: string[]) => {
+  const handleSaveSettings = async (newBeds: number, newRooms: string[], newInsulins?: string[]) => {
+    const targetInsulins = newInsulins && newInsulins.length > 0 ? newInsulins : insulins;
     setBeds(newBeds);
     setRooms(newRooms);
+    setInsulins(targetInsulins);
     if (currentUser) {
-      await saveSettingsToFirestore({ beds: newBeds, rooms: newRooms });
+      await saveSettingsToFirestore({ beds: newBeds, rooms: newRooms, insulins: targetInsulins });
     } else {
-      saveLocalData({ patients, recs, scheds, reports, beds: newBeds, rooms: newRooms });
+      saveLocalData({ patients, recs, scheds, reports, glucoseRecords, beds: newBeds, rooms: newRooms, insulins: targetInsulins });
     }
     setSettingsModalOpen(false);
+  };
+
+  const handleSaveGlucoseRecord = async (record: GlucoseRecord) => {
+    setSyncStatus('saving');
+    const exists = glucoseRecords.some((g) => g.id === record.id);
+    const next = exists
+      ? glucoseRecords.map((g) => (g.id === record.id ? record : g))
+      : [record, ...glucoseRecords];
+    setGlucoseRecords(next);
+
+    if (currentUser) {
+      await saveGlucoseToFirestore(record);
+    } else {
+      saveLocalData({ patients, recs, scheds, reports, glucoseRecords: next, beds, rooms });
+    }
+    setSyncStatus('ok');
+  };
+
+  const handleDeleteGlucoseRecord = async (id: number) => {
+    setSyncStatus('saving');
+    const next = glucoseRecords.filter((g) => g.id !== id);
+    setGlucoseRecords(next);
+
+    if (currentUser) {
+      await deleteGlucoseFromFirestore(id);
+    } else {
+      saveLocalData({ patients, recs, scheds, reports, glucoseRecords: next, beds, rooms });
+    }
+    setSyncStatus('ok');
   };
 
   if (loading) {
@@ -546,14 +613,15 @@ export default function App() {
   if (!isAuthenticated) {
     return (
       <LoginModal
-        onSuccess={() => {}}
-        onDemoLogin={handleDemoLogin}
+        onSuccess={handlePasswordLoginSuccess}
       />
     );
   }
 
   const activeCount = patients.filter((p) => isIn(p, now)).length;
+  const dischargedCount = patients.filter((p) => p.status === 'out').length;
   const pendingScheduleCount = scheds.filter((s) => !s.done && s.date === isoDay(now)).length;
+  const todayGlucoseCount = glucoseRecords.filter((g) => g.date === isoDay(now)).length;
 
   return (
     <div className="min-h-screen bg-[#F3F4F1] flex flex-col antialiased">
@@ -561,7 +629,7 @@ export default function App() {
       <Header
         now={now}
         syncStatus={syncStatus}
-        userEmail={currentUser?.email || (isDemoUser ? 'Tài khoản khách (Demo)' : null)}
+        userEmail={currentUser?.email || (isDemoUser ? 'Nội bộ đơn nguyên' : null)}
         onOpenSettings={() => setSettingsModalOpen(true)}
       />
 
@@ -570,7 +638,9 @@ export default function App() {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         activePatientCount={activeCount}
+        dischargedCount={dischargedCount}
         pendingScheduleCount={pendingScheduleCount}
+        todayGlucoseCount={todayGlucoseCount}
       />
 
       {/* Main Content Area */}
@@ -587,18 +657,25 @@ export default function App() {
             }}
             onGoToSchedule={() => setActiveTab('lich')}
             onOpenDischargedList={() => {
-              setActiveTab('bn');
-              setInitialShowDischarged(true);
+              setActiveTab('cu');
             }}
             onSignOut={handleSignOut}
-            userEmail={currentUser?.email || (isDemoUser ? 'Chế độ Demo / Nội bộ' : null)}
+            onSelectTab={setActiveTab}
+            todayGlucoseCount={todayGlucoseCount}
+            userEmail={currentUser?.email || (isDemoUser ? 'Nội bộ đơn nguyên' : null)}
           />
         )}
 
         {activeTab === 'bn' && (
           <PatientsTab
             patients={patients}
+            recs={recs}
+            glucoseRecords={glucoseRecords}
             initialShowDischarged={initialShowDischarged}
+            selectedPatientId={selectedPatientId}
+            onSelectPatientId={setSelectedPatientId}
+            onCancelDischarge={handleCancelDischarge}
+            onSelectTab={setActiveTab}
             onOpenAdmit={() => {
               setEditingPatient(null);
               setAdmitModalOpen(true);
@@ -619,6 +696,35 @@ export default function App() {
               setDischargeTargetPatient(p);
               setDischargeModalOpen(true);
             }}
+            onAddTreatment={handleAddTreatment}
+            onSaveGlucoseRecord={handleSaveGlucoseRecord}
+            onDeleteGlucoseRecord={handleDeleteGlucoseRecord}
+            insulins={insulins}
+          />
+        )}
+
+        {activeTab === 'cu' && (
+          <OldPatientsTab
+            patients={patients}
+            onRestorePatient={handleCancelDischarge}
+            onOpenPatientDetail={(p) => {
+              setSelectedPatientId(p.id);
+              setActiveTab('bn');
+            }}
+          />
+        )}
+
+        {activeTab === 'duonghuyet' && (
+          <GlucoseTab
+            patients={patients}
+            glucoseRecords={glucoseRecords}
+            insulins={insulins}
+            onSaveGlucoseRecord={handleSaveGlucoseRecord}
+            onDeleteGlucoseRecord={handleDeleteGlucoseRecord}
+            onOpenPatientDetail={(p) => {
+              setSelectedPatientId(p.id);
+              setActiveTab('bn');
+            }}
           />
         )}
 
@@ -634,6 +740,7 @@ export default function App() {
               setHistoryTargetPatient(p);
               setHistoryModalOpen(true);
             }}
+            onAddTreatment={handleAddTreatment}
           />
         )}
 
@@ -764,6 +871,7 @@ export default function App() {
         <SettingsModal
           currentBeds={beds}
           currentRooms={rooms}
+          currentInsulins={insulins}
           patients={patients}
           onClose={() => setSettingsModalOpen(false)}
           onSave={handleSaveSettings}

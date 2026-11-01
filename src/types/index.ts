@@ -122,5 +122,22 @@ export interface AppConfig {
 export interface DepartmentSettings {
   beds: number;
   rooms: string[];
+  insulins?: string[];
 }
+
+export type GlucoseSlot = '06:00' | '11:00' | '17:00' | '21:00' | 'custom';
+
+export interface GlucoseRecord {
+  id: number;
+  patientId: number;
+  date: string;          // YYYY-MM-DD
+  time: string;          // HH:mm (e.g. 06:00, 11:00, 17:00, 21:00, or custom)
+  slotType: GlucoseSlot;
+  glucoseValue: string;  // e.g. "7.2" (mmol/L)
+  insulinDose?: string;  // e.g. "4 UI"
+  insulinType?: string;  // e.g. "Novorapid", "Mixtard 30", "Lantus"
+  note?: string;         // e.g. "Trước ăn sáng", "Đói", etc.
+  createdAt: number;
+}
+
 

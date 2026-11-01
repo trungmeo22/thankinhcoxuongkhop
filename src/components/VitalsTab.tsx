@@ -15,13 +15,15 @@ import {
   isOut,
   KIND_LABELS
 } from '../lib/constants';
-import { Plus, HeartPulse, FileSpreadsheet, AlertTriangle, Calendar } from 'lucide-react';
+import { Plus, HeartPulse, FileSpreadsheet, AlertTriangle, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { VitalsTimelineTable } from './VitalsTimelineTable';
 
 interface VitalsTabProps {
   patients: Patient[];
   recs: VitalRecord[];
   onOpenRecordModal: (p?: Patient) => void;
   onOpenPatientHistory: (p: Patient) => void;
+  onAddTreatment?: (recordId: number, text: string) => void;
 }
 
 export const VitalsTab: React.FC<VitalsTabProps> = ({
@@ -29,9 +31,41 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
   recs,
   onOpenRecordModal,
   onOpenPatientHistory,
+  onAddTreatment,
 }) => {
   const [selectedDate, setSelectedDate] = useState(isoDay(Date.now()));
   const [selectedRoom, setSelectedRoom] = useState<string>('all');
+  const [expandedPids, setExpandedPids] = useState<Set<number>>(new Set());
+
+  const toggleExpand = (pid: number) => {
+    setExpandedPids((prev) => {
+      const next = new Set(prev);
+      if (next.has(pid)) next.delete(pid);
+      else next.add(pid);
+      return next;
+    });
+  };
+
+  const getPatientFullTimeline = (p: Patient) => {
+    const patientRecs = recs
+      .filter((r) => r.pid === p.id)
+      .map((r) => ({ ...r, isAdmit: false }));
+    const admitRecord = {
+      id: 0,
+      pid: p.id,
+      at: p.admitAt,
+      pulse: p.av?.pulse || p.pulse,
+      bp: p.av?.bp || p.bp,
+      temp: p.av?.temp || p.temp,
+      spo2: p.av?.spo2 || p.spo2,
+      rr: p.av?.rr || p.rr,
+      note: p.note,
+      abn: false,
+      tx: [],
+      isAdmit: true,
+    };
+    return [...patientRecs, admitRecord].sort((a, b) => a.at - b.at);
+  };
 
   const dStart = fromIso(selectedDate);
   const dEnd = dStart + DAY;
@@ -186,6 +220,8 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
                 {/* Patient Rows inside room */}
                 <div className="divide-y divide-[#E6E9E5]">
                   {roomPatients.map((p) => {
+                    const isExpanded = expandedPids.has(p.id);
+                    const fullTimeline = getPatientFullTimeline(p);
                     const records = getPatientDayRecords(p);
                     const out = isOut(p);
 
@@ -193,7 +229,7 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
                       <div key={p.id} className="p-4 space-y-3">
                         {/* Top: Name, Age, Action buttons */}
                         <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <strong className="text-sm text-[#17201D]">{p.name}</strong>
                             <span className="text-xs text-[#56615C]">{ageText(p)}</span>
                             {out && (
@@ -201,30 +237,55 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
                                 {KIND_LABELS[p.outKind || 'ra']}
                               </span>
                             )}
+                            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-semibold border border-emerald-100">
+                              {fullTimeline.length} lần ghi nhận
+                            </span>
                           </div>
 
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
                               onClick={() => onOpenRecordModal(p)}
-                              className="px-2.5 py-1 rounded-lg border border-[#0E6B5E] bg-white hover:bg-[#E4F0EC] text-[#0B5C51] text-xs font-semibold transition-colors"
+                              className="px-2.5 py-1 rounded-lg border border-[#0E6B5E] bg-white hover:bg-[#E4F0EC] text-[#0B5C51] text-xs font-semibold transition-colors cursor-pointer"
                             >
                               + Ghi
                             </button>
                             <button
                               type="button"
                               onClick={() => onOpenPatientHistory(p)}
-                              className="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-800 transition-colors"
+                              className="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-800 transition-colors cursor-pointer"
                             >
                               Xem hồ sơ
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => toggleExpand(p.id)}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#E4F0EC] hover:bg-[#d5e7e1] text-[#0B5C51] text-xs font-bold transition-colors cursor-pointer"
+                              title={isExpanded ? 'Thu gọn dòng thời gian' : 'Xem dòng thời gian trượt ngang'}
+                            >
+                              <span>{isExpanded ? 'Thu gọn' : 'Dòng thời gian'}</span>
+                              {isExpanded ? (
+                                <ChevronUp className="w-3.5 h-3.5" />
+                              ) : (
+                                <ChevronDown className="w-3.5 h-3.5" />
+                              )}
                             </button>
                           </div>
                         </div>
 
-                        {/* Vitals records */}
-                        {!records.length ? (
+                        {/* Full Timeline Table (when expanded) OR Single Day Table (when collapsed) */}
+                        {isExpanded ? (
+                          <div className="pt-2 animate-in fade-in duration-150">
+                            <VitalsTimelineTable
+                              items={fullTimeline}
+                              patient={p}
+                              onAddVitals={() => onOpenRecordModal(p)}
+                              onAddTreatment={onAddTreatment}
+                            />
+                          </div>
+                        ) : !records.length ? (
                           <div className="text-xs text-[#8A948F] italic py-1">
-                            Chưa ghi dấu hiệu sinh tồn trong ngày này.
+                            Chưa ghi dấu hiệu sinh tồn trong ngày này. (Bấm "Dòng thời gian" để xem tất cả các ngày)
                           </div>
                         ) : (
                           <div className="border border-[#E6E9E5] rounded-xl overflow-hidden">

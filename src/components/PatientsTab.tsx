@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Patient } from '../types';
+import { Patient, VitalRecord, GlucoseRecord } from '../types';
 import {
   isIn,
   isOut,
@@ -11,29 +11,82 @@ import {
   KIND_LABELS,
   fold
 } from '../lib/constants';
-import { Search, Plus, Edit2, HeartPulse, CalendarPlus, LogOut, ArrowLeft, Clock } from 'lucide-react';
+import { Search, Plus, Edit2, HeartPulse, CalendarPlus, LogOut, ArrowLeft, Clock, ChevronRight } from 'lucide-react';
+import { PatientDetailView } from './PatientDetailView';
 
 interface PatientsTabProps {
   patients: Patient[];
+  recs: VitalRecord[];
+  glucoseRecords: GlucoseRecord[];
+  insulins?: string[];
   onOpenAdmit: () => void;
   onEditPatient: (p: Patient) => void;
   onOpenVitals: (p: Patient) => void;
   onOpenOrder: (p: Patient) => void;
   onOpenDischarge: (p: Patient) => void;
+  onAddTreatment: (recordId: number, text: string) => void;
+  onSaveGlucoseRecord: (record: GlucoseRecord) => void;
+  onDeleteGlucoseRecord: (id: number) => void;
   initialShowDischarged?: boolean;
+  selectedPatientId?: number | null;
+  onSelectPatientId?: (id: number | null) => void;
+  onCancelDischarge?: (patientId: number) => void;
+  onSelectTab?: (tab: any) => void;
 }
 
 export const PatientsTab: React.FC<PatientsTabProps> = ({
   patients,
+  recs,
+  glucoseRecords,
+  insulins,
   onOpenAdmit,
   onEditPatient,
   onOpenVitals,
   onOpenOrder,
   onOpenDischarge,
+  onAddTreatment,
+  onSaveGlucoseRecord,
+  onDeleteGlucoseRecord,
   initialShowDischarged = false,
+  selectedPatientId,
+  onSelectPatientId,
+  onCancelDischarge,
+  onSelectTab,
 }) => {
   const [q, setQ] = useState('');
   const [showOut, setShowOut] = useState(initialShowDischarged);
+  const [internalSelectedPatientId, setInternalSelectedPatientId] = useState<number | null>(null);
+
+  const activeSelectedPatientId = selectedPatientId !== undefined ? selectedPatientId : internalSelectedPatientId;
+  const setSelectedPatientId = (id: number | null) => {
+    if (onSelectPatientId) {
+      onSelectPatientId(id);
+    } else {
+      setInternalSelectedPatientId(id);
+    }
+  };
+
+  const selectedPatient = activeSelectedPatientId != null ? patients.find((p) => p.id === activeSelectedPatientId) : null;
+
+  if (selectedPatient) {
+    return (
+      <PatientDetailView
+        patient={selectedPatient}
+        recs={recs}
+        glucoseRecords={glucoseRecords}
+        insulins={insulins}
+        onBack={() => setSelectedPatientId(null)}
+        onEditPatient={onEditPatient}
+        onOpenRecordVitals={onOpenVitals}
+        onAddTreatment={onAddTreatment}
+        onSaveGlucoseRecord={onSaveGlucoseRecord}
+        onDeleteGlucoseRecord={onDeleteGlucoseRecord}
+        onOpenOrder={onOpenOrder}
+        onOpenDischarge={onOpenDischarge}
+        onCancelDischarge={onCancelDischarge}
+      />
+    );
+  }
 
   const now = Date.now();
   const qClean = fold(q.trim());
@@ -101,13 +154,22 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
             />
           </div>
 
-          {/* Toggle between active and discharged */}
           <button
             type="button"
-            onClick={() => setShowOut(!showOut)}
-            className="px-3 py-1.5 rounded-xl border border-[#0E6B5E] bg-white hover:bg-[#E4F0EC] text-[#0B5C51] text-xs font-semibold transition-colors"
+            onClick={() => {
+              if (onSelectTab) {
+                onSelectTab('cu');
+              } else {
+                setShowOut(!showOut);
+              }
+            }}
+            className="px-3 py-1.5 rounded-xl border border-[#0E6B5E] bg-white hover:bg-[#E4F0EC] text-[#0B5C51] text-xs font-semibold transition-colors cursor-pointer"
           >
-            {showOut ? '← Bệnh nhân hiện có' : `Danh sách báo ra viện (${patients.filter((p) => p.status === 'out').length})`}
+            {onSelectTab
+              ? `Bệnh nhân cũ (${patients.filter((p) => p.status === 'out').length})`
+              : showOut
+              ? '← Bệnh nhân hiện có'
+              : `Danh sách báo ra viện (${patients.filter((p) => p.status === 'out').length})`}
           </button>
 
           {/* Admit button */}
@@ -191,7 +253,11 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
                 const kind = p.outKind || 'ra';
 
                 return (
-                  <div key={p.id} className="p-3.5 md:p-4 flex flex-wrap items-center gap-3">
+                  <div
+                    key={p.id}
+                    onClick={() => setSelectedPatientId(p.id)}
+                    className="p-3.5 md:p-4 flex flex-wrap items-center gap-3 hover:bg-[#F2F8F5] transition-colors cursor-pointer group"
+                  >
                     <span
                       className={`px-2.5 py-1.5 rounded-lg text-white font-bold text-xs shrink-0 ${
                         isPending ? 'bg-[#0F2F2A]' : 'bg-[#56615C]'
@@ -202,7 +268,9 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
 
                     <div className="flex-1 min-w-[200px]">
                       <div className="flex flex-wrap items-center gap-2">
-                        <strong className="text-sm text-[#17201D]">{p.name}</strong>
+                        <strong className="text-sm text-[#17201D] group-hover:text-[#0E6B5E] transition-colors">
+                          {p.name}
+                        </strong>
                         <span
                           className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                             isPending
@@ -212,6 +280,10 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
                         >
                           {isPending ? 'Chờ ' : 'Đã '}
                           {KIND_LABELS[kind].toLowerCase()}
+                        </span>
+                        <span className="text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold border border-emerald-100 flex items-center gap-0.5 opacity-90 group-hover:opacity-100">
+                          <span>Chi tiết hồ sơ</span>
+                          <ChevronRight className="w-3 h-3" />
                         </span>
                       </div>
 
@@ -229,7 +301,10 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
                       )}
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div
+                      className="flex items-center gap-1.5 shrink-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <button
                         type="button"
                         onClick={() => onOpenVitals(p)}
@@ -259,25 +334,27 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
     const isPending = p.status === 'out' && (p.outAt || 0) > now;
 
     return (
-      <div key={p.id} className="p-3.5 md:p-4 flex flex-wrap items-center gap-3 hover:bg-[#FAFBF9] transition-colors">
+      <div
+        key={p.id}
+        onClick={() => setSelectedPatientId(p.id)}
+        className="p-3.5 md:p-4 flex flex-wrap items-center gap-3 hover:bg-[#F2F8F5] transition-colors cursor-pointer group"
+      >
         {/* Room badge */}
-        <span className="px-2.5 py-1 rounded-lg bg-[#0F2F2A] text-white font-bold text-xs shrink-0">
+        <span className="px-2.5 py-1 rounded-lg bg-[#0F2F2A] group-hover:bg-[#0E6B5E] text-white font-bold text-xs shrink-0 transition-colors">
           {p.room}
         </span>
 
         {/* Patient Info */}
         <div className="flex-1 min-w-[180px]">
-          <button
-            type="button"
-            onClick={() => onEditPatient(p)}
-            className="text-left group inline-flex items-center gap-1.5"
-            title="Bấm để sửa thông tin bệnh nhân"
-          >
+          <div className="flex flex-wrap items-center gap-2">
             <span className="font-bold text-sm text-[#17201D] group-hover:text-[#0E6B5E] transition-colors">
               {p.name}
             </span>
-            <Edit2 className="w-3.5 h-3.5 text-[#8A948F] group-hover:text-[#0E6B5E]" />
-          </button>
+            <span className="text-[11px] text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-full font-semibold border border-emerald-100 flex items-center gap-0.5 opacity-90 group-hover:opacity-100">
+              <span>Chi tiết hồ sơ</span>
+              <ChevronRight className="w-3 h-3" />
+            </span>
+          </div>
           <div className="text-[11px] text-[#56615C]">
             {ageText(p)} · vào {hm(p.admitAt)} · {dm(p.admitAt)}
           </div>
@@ -294,11 +371,23 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+        <div
+          className="flex flex-wrap items-center gap-1.5 shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() => onEditPatient(p)}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold transition-colors cursor-pointer"
+            title="Sửa thông tin bệnh nhân"
+          >
+            <Edit2 className="w-3.5 h-3.5" />
+            <span>Sửa</span>
+          </button>
           <button
             type="button"
             onClick={() => onOpenVitals(p)}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#0E6B5E] bg-white hover:bg-[#E4F0EC] text-[#0B5C51] text-xs font-semibold transition-colors"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#0E6B5E] bg-white hover:bg-[#E4F0EC] text-[#0B5C51] text-xs font-semibold transition-colors cursor-pointer"
           >
             <HeartPulse className="w-3.5 h-3.5" />
             <span>DHST</span>
@@ -306,7 +395,7 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
           <button
             type="button"
             onClick={() => onOpenOrder(p)}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#0E6B5E] bg-white hover:bg-[#E4F0EC] text-[#0B5C51] text-xs font-semibold transition-colors"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#0E6B5E] bg-white hover:bg-[#E4F0EC] text-[#0B5C51] text-xs font-semibold transition-colors cursor-pointer"
           >
             <CalendarPlus className="w-3.5 h-3.5" />
             <span>Chỉ định</span>
@@ -314,7 +403,7 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
           <button
             type="button"
             onClick={() => onOpenDischarge(p)}
-            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
+            className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer ${
               isPending
                 ? 'bg-amber-100 hover:bg-amber-200 text-amber-900'
                 : 'bg-gray-100 hover:bg-gray-200 text-gray-800'

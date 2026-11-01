@@ -19,7 +19,7 @@ import {
   User
 } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { Patient, VitalRecord, ScheduleItem, DutyReport } from '../types';
+import { Patient, VitalRecord, ScheduleItem, DutyReport, GlucoseRecord } from '../types';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
@@ -100,11 +100,34 @@ export async function signOutStaff() {
   return signOut(auth);
 }
 
+/**
+ * Recursively cleans an object for Firestore by omitting any fields with `undefined` values.
+ * Firestore throws errors if `undefined` values are written.
+ */
+export function cleanForFirestore<T>(data: T): any {
+  if (data === null || data === undefined) {
+    return null;
+  }
+  if (Array.isArray(data)) {
+    return data.map((item) => cleanForFirestore(item));
+  }
+  if (typeof data === 'object') {
+    const cleaned: Record<string, any> = {};
+    for (const [key, val] of Object.entries(data as Record<string, any>)) {
+      if (val !== undefined) {
+        cleaned[key] = cleanForFirestore(val);
+      }
+    }
+    return cleaned;
+  }
+  return data;
+}
+
 // Data synchronization helpers
 export async function savePatientToFirestore(p: Patient) {
   const path = `patients/${p.id}`;
   try {
-    await setDoc(doc(db, 'patients', String(p.id)), p);
+    await setDoc(doc(db, 'patients', String(p.id)), cleanForFirestore(p));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
@@ -122,7 +145,7 @@ export async function deletePatientFromFirestore(id: number) {
 export async function saveRecToFirestore(r: VitalRecord) {
   const path = `recs/${r.id}`;
   try {
-    await setDoc(doc(db, 'recs', String(r.id)), r);
+    await setDoc(doc(db, 'recs', String(r.id)), cleanForFirestore(r));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
@@ -140,7 +163,7 @@ export async function deleteRecFromFirestore(id: number) {
 export async function saveSchedToFirestore(s: ScheduleItem) {
   const path = `scheds/${s.id}`;
   try {
-    await setDoc(doc(db, 'scheds', String(s.id)), s);
+    await setDoc(doc(db, 'scheds', String(s.id)), cleanForFirestore(s));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
@@ -158,7 +181,7 @@ export async function deleteSchedFromFirestore(id: number) {
 export async function saveReportToFirestore(rep: DutyReport) {
   const path = `reports/${rep.id}`;
   try {
-    await setDoc(doc(db, 'reports', String(rep.id)), rep);
+    await setDoc(doc(db, 'reports', String(rep.id)), cleanForFirestore(rep));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
@@ -173,11 +196,30 @@ export async function deleteReportFromFirestore(id: number) {
   }
 }
 
-export async function saveSettingsToFirestore(settings: { beds: number; rooms?: string[] }) {
+export async function saveSettingsToFirestore(settings: { beds: number; rooms?: string[]; insulins?: string[] }) {
   const path = 'settings/1';
   try {
-    await setDoc(doc(db, 'settings', '1'), settings, { merge: true });
+    await setDoc(doc(db, 'settings', '1'), cleanForFirestore(settings), { merge: true });
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
 }
+
+export async function saveGlucoseToFirestore(g: GlucoseRecord) {
+  const path = `glucose_records/${g.id}`;
+  try {
+    await setDoc(doc(db, 'glucose_records', String(g.id)), cleanForFirestore(g));
+  } catch (err) {
+    handleFirestoreError(err, OperationType.WRITE, path);
+  }
+}
+
+export async function deleteGlucoseFromFirestore(id: number) {
+  const path = `glucose_records/${id}`;
+  try {
+    await deleteDoc(doc(db, 'glucose_records', String(id)));
+  } catch (err) {
+    handleFirestoreError(err, OperationType.DELETE, path);
+  }
+}
+

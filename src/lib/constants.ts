@@ -23,6 +23,17 @@ export const SITES: Record<ProcedureType, string[]> = {
 
 export const DEFAULT_ROOMS = ['P.301', 'P.302', 'P.303', 'P.304', 'P.305', 'P.306'];
 
+export const DEFAULT_INSULINS = [
+  'Wosulin 30/70',
+  'Wosulin R',
+  'Lantus',
+  'Novomix',
+  'Novo Rapid',
+  'Apidra',
+  'Gralitus',
+  'Levemir'
+];
+
 export const VKEYS: (keyof VitalSignValues)[] = ['pulse', 'bp', 'temp', 'spo2', 'rr'];
 
 export const pad = (n: number) => String(n).padStart(2, '0');

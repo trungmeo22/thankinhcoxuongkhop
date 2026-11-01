@@ -1,5 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { Patient, VitalRecord, ScheduleItem, DutyReport, AppConfig } from '../types';
+import { Patient, VitalRecord, ScheduleItem, DutyReport, AppConfig, GlucoseRecord } from '../types';
+import { DEFAULT_INSULINS } from './constants';
 
 declare global {
   interface Window {
@@ -81,8 +82,10 @@ export interface AppStateData {
   recs: VitalRecord[];
   scheds: ScheduleItem[];
   reports: DutyReport[];
+  glucoseRecords?: GlucoseRecord[];
   beds: number;
   rooms?: string[];
+  insulins?: string[];
 }
 
 const LOCAL_STORAGE_KEY = 'cxk_local_database_v2';
@@ -128,18 +131,27 @@ export function getInitialLocalData(): AppStateData {
         const cleanReports = Array.isArray(parsed.reports)
           ? parsed.reports.filter((rep: DutyReport) => rep.id !== 1)
           : [];
+        const cleanGlucose = Array.isArray(parsed.glucoseRecords)
+          ? parsed.glucoseRecords
+          : [];
 
         if (!parsed.rooms || !parsed.rooms.length) {
           parsed.rooms = ['P.301', 'P.302', 'P.303', 'P.304', 'P.305', 'P.306'];
         }
+
+        const cleanInsulins = Array.isArray(parsed.insulins) && parsed.insulins.length > 0
+          ? parsed.insulins
+          : [...DEFAULT_INSULINS];
 
         return {
           patients: cleanPatients,
           recs: cleanRecs,
           scheds: cleanScheds,
           reports: cleanReports,
+          glucoseRecords: cleanGlucose,
           beds: parsed.beds || 30,
           rooms: parsed.rooms,
+          insulins: cleanInsulins,
         };
       }
     }
@@ -152,8 +164,10 @@ export function getInitialLocalData(): AppStateData {
     recs: [],
     scheds: [],
     reports: [],
+    glucoseRecords: [],
     beds: 30,
     rooms: ['P.301', 'P.302', 'P.303', 'P.304', 'P.305', 'P.306'],
+    insulins: [...DEFAULT_INSULINS],
   };
   saveLocalData(data);
   return data;
@@ -167,9 +181,17 @@ export const DEMO_PATIENT_NAMES = new Set([
   'Lương Thế Vinh', 'Cao Thị Xuân', 'Đặng Đình Yên', 'Hà Thị Bích'
 ]);
 
-export function saveLocalData(data: AppStateData) {
+export function saveLocalData(data: Partial<AppStateData>) {
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
+    let existing: any = {};
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (raw) {
+      try {
+        existing = JSON.parse(raw);
+      } catch {}
+    }
+    const merged = { ...existing, ...data };
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(merged));
   } catch (e) {
     console.error('Failed to persist local database to storage', e);
   }
