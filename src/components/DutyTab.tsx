@@ -660,6 +660,16 @@ export const DutyTab: React.FC<DutyTabProps> = ({
                         canRemove={b.notes.length > 1}
                       />
                     ))}
+
+                    {/* Nút thêm diễn biến mới nằm ngay dưới diễn biến đã có */}
+                    <button
+                      type="button"
+                      onClick={() => addNoteLine(bIdx)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-[#0E6B5E]/60 hover:border-[#0E6B5E] text-[#0B5C51] hover:bg-emerald-50 text-xs font-semibold transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-[#0E6B5E]" />
+                      <span>Thêm diễn biến mới</span>
+                    </button>
                   </div>
                 </div>
               );

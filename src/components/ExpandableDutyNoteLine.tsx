@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Clock, Plus, X, Maximize2, Minimize2 } from 'lucide-react';
+import { Clock, X, Maximize2, Minimize2 } from 'lucide-react';
 import { hm } from '../lib/constants';
 
 interface ExpandableDutyNoteLineProps {
@@ -8,7 +8,7 @@ interface ExpandableDutyNoteLineProps {
   placeholder?: string;
   onTimeChange: (time: string) => void;
   onTextChange: (text: string) => void;
-  onAddLine: () => void;
+  onAddLine?: () => void;
   onRemoveLine: () => void;
   canRemove: boolean;
 }
@@ -100,14 +100,6 @@ export const ExpandableDutyNoteLine: React.FC<ExpandableDutyNoteLineProps> = ({
                 <Minimize2 className="w-3 h-3 text-gray-400" />
                 <span>Thu gọn</span>
               </button>
-              <button
-                type="button"
-                onClick={onAddLine}
-                className="p-1 text-emerald-700 hover:bg-emerald-50 rounded cursor-pointer"
-                title="Thêm diễn biến mới"
-              >
-                <Plus className="w-3.5 h-3.5" />
-              </button>
               {canRemove && (
                 <button
                   type="button"
@@ -183,14 +175,6 @@ export const ExpandableDutyNoteLine: React.FC<ExpandableDutyNoteLineProps> = ({
           </div>
 
           {/* Action Buttons */}
-          <button
-            type="button"
-            onClick={onAddLine}
-            className="p-1.5 text-emerald-700 hover:bg-emerald-50 rounded-lg cursor-pointer"
-            title="Thêm dòng diễn biến"
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
           {canRemove && (
             <button
               type="button"
