@@ -39,6 +39,7 @@ interface DashboardTabProps {
   onGoToPatients: () => void;
   onGoToSchedule: () => void;
   onOpenDischargedList: () => void;
+  onGoToScheduledDischarges?: () => void;
   onSignOut: () => void;
   onSelectTab?: (tab: TabKey) => void;
   todayGlucoseCount?: number;
@@ -53,6 +54,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   onGoToPatients,
   onGoToSchedule,
   onOpenDischargedList,
+  onGoToScheduledDischarges,
   onSignOut,
   onSelectTab,
   todayGlucoseCount = 0,
@@ -256,7 +258,7 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
           {/* Nút 6: Bệnh nhân cũ */}
           <button
             type="button"
-            onClick={onOpenDischargedList}
+            onClick={() => onSelectTab ? onSelectTab('cu') : onOpenDischargedList()}
             className="p-3 rounded-2xl bg-white border border-[#DDE1DC] shadow-xs hover:border-[#0E6B5E] text-left transition-all active:scale-95 flex flex-col justify-between min-h-[74px] cursor-pointer"
           >
             <div className="flex items-center justify-between w-full">
@@ -327,8 +329,9 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             <span>Chờ ra: <strong>{pendingDischarges}</strong></span>
             <button
               type="button"
-              onClick={onOpenDischargedList}
-              className="text-[#0E6B5E] hover:underline font-semibold"
+              onClick={onGoToScheduledDischarges || onGoToPatients}
+              className="text-[#0E6B5E] hover:underline font-semibold cursor-pointer"
+              title="Xem danh sách ra viện"
             >
               Xem DS
             </button>

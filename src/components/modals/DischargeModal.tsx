@@ -16,9 +16,15 @@ export const DischargeModal: React.FC<DischargeModalProps> = ({
   onSave,
   onCancelDischarge,
 }) => {
-  const now = Date.now();
+  const getTomorrow830 = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    d.setHours(8, 30, 0, 0);
+    return dtLocal(d.getTime());
+  };
+
   const [kind, setKind] = useState<DischargeKind>(patient.outKind || 'ra');
-  const [time, setTime] = useState(patient.outAt ? dtLocal(patient.outAt) : dtLocal(now));
+  const [time, setTime] = useState(patient.outAt ? dtLocal(patient.outAt) : getTomorrow830());
   const [note, setNote] = useState(patient.outNote || '');
   const [err, setErr] = useState('');
 
@@ -106,8 +112,17 @@ export const DischargeModal: React.FC<DischargeModalProps> = ({
               />
               <button
                 type="button"
+                onClick={() => setTime(getTomorrow830())}
+                className="px-2.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-[#0E6B5E] border border-emerald-200 font-semibold transition-colors shrink-0 cursor-pointer"
+                title="Đặt 8h30 sáng mai"
+              >
+                8h30 mai
+              </button>
+              <button
+                type="button"
                 onClick={() => setTime(dtLocal(Date.now()))}
-                className="px-3 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold transition-colors shrink-0"
+                className="px-2.5 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold transition-colors shrink-0 cursor-pointer"
+                title="Đặt thời gian hiện tại"
               >
                 Bây giờ
               </button>

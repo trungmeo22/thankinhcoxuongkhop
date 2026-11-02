@@ -205,7 +205,7 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
       {!showOut && (
         <div className="space-y-4">
           {/* Danh sách ra viện */}
-          <div className="bg-white rounded-2xl border border-amber-200/90 shadow-xs overflow-hidden">
+          <div id="danh-sach-ra-vien" className="bg-white rounded-2xl border border-amber-200/90 shadow-xs overflow-hidden scroll-mt-24">
             <div className="p-3.5 bg-amber-50/75 border-b border-amber-200 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="px-2 py-0.5 rounded-md bg-amber-200/90 text-amber-900 text-[11px] font-bold">

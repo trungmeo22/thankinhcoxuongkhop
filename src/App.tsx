@@ -705,6 +705,17 @@ export default function App() {
             onOpenDischargedList={() => {
               handleSelectTab('cu');
             }}
+            onGoToScheduledDischarges={() => {
+              setSelectedPatientId(null);
+              setInitialShowDischarged(false);
+              handleSelectTab('bn');
+              setTimeout(() => {
+                const el = document.getElementById('danh-sach-ra-vien');
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+              }, 120);
+            }}
             onSignOut={handleSignOut}
             onSelectTab={handleSelectTab}
             todayGlucoseCount={todayGlucoseCount}
