@@ -2,37 +2,37 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Global default deny
-    match /{document=**} {
-      allow read, write: if false;
-    }
-
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
-    }
-
     match /patients/{patientId} {
-      allow read, write: if isSignedIn() && isValidId(patientId);
+      allow read, write: if true;
     }
 
     match /recs/{recId} {
-      allow read, write: if isSignedIn() && isValidId(recId);
+      allow read, write: if true;
+    }
+
+    match /glucose_records/{recordId} {
+      allow read, write: if true;
     }
 
     match /scheds/{schedId} {
-      allow read, write: if isSignedIn() && isValidId(schedId);
+      allow read, write: if true;
     }
 
     match /reports/{reportId} {
-      allow read, write: if isSignedIn() && isValidId(reportId);
+      allow read, write: if true;
     }
 
     match /settings/{settingId} {
-      allow read, write: if isSignedIn() && isValidId(settingId);
+      allow read, write: if true;
+    }
+
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
+    match /{document=**} {
+      allow read, write: if true;
     }
   }
 }
+

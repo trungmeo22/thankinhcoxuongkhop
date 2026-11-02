@@ -9,6 +9,7 @@
         "name": { "type": "string", "description": "Patient full name", "maxLength": 128 },
         "age": { "type": "string", "description": "Patient age", "maxLength": 10 },
         "room": { "type": "string", "description": "Room number", "maxLength": 30 },
+        "doctor": { "type": "string", "description": "Attending doctor", "maxLength": 100 },
         "note": { "type": "string", "description": "Admission note", "maxLength": 1000 },
         "admitAt": { "type": "number", "description": "Timestamp of admission" },
         "status": { "type": "string", "description": "Inpatient status: in or out", "enum": ["in", "out"] },
@@ -19,7 +20,17 @@
         "bp": { "type": "string", "maxLength": 20 },
         "temp": { "type": "string", "maxLength": 20 },
         "spo2": { "type": "string", "maxLength": 20 },
-        "rr": { "type": "string", "maxLength": 20 }
+        "rr": { "type": "string", "maxLength": 20 },
+        "av": {
+          "type": "object",
+          "properties": {
+            "pulse": { "type": "string" },
+            "bp": { "type": "string" },
+            "temp": { "type": "string" },
+            "spo2": { "type": "string" },
+            "rr": { "type": "string" }
+          }
+        }
       },
       "required": ["id", "name", "room", "admitAt", "status"]
     },
@@ -37,9 +48,38 @@
         "spo2": { "type": "string", "maxLength": 20 },
         "rr": { "type": "string", "maxLength": 20 },
         "note": { "type": "string", "maxLength": 1000 },
-        "abn": { "type": "boolean" }
+        "abn": { "type": "boolean" },
+        "tx": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "number" },
+              "at": { "type": "number" },
+              "text": { "type": "string" }
+            }
+          }
+        }
       },
       "required": ["id", "pid", "at"]
+    },
+    "GlucoseRecord": {
+      "title": "GlucoseRecord",
+      "description": "Blood sugar test and insulin administration record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "number" },
+        "patientId": { "type": "number" },
+        "date": { "type": "string", "maxLength": 20 },
+        "time": { "type": "string", "maxLength": 20 },
+        "slotType": { "type": "string", "enum": ["06:00", "11:00", "17:00", "21:00", "custom"] },
+        "glucoseValue": { "type": "string", "maxLength": 20 },
+        "insulinDose": { "type": "string", "maxLength": 50 },
+        "insulinType": { "type": "string", "maxLength": 100 },
+        "note": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["id", "patientId", "date", "time", "slotType", "glucoseValue"]
     },
     "ScheduleItem": {
       "title": "ScheduleItem",
@@ -68,6 +108,8 @@
         "date": { "type": "string", "maxLength": 20 },
         "doctor": { "type": "string", "maxLength": 100 },
         "nurse": { "type": "string", "maxLength": 100 },
+        "stats": { "type": "object" },
+        "blocks": { "type": "array" },
         "text": { "type": "string", "maxLength": 10000 }
       },
       "required": ["id", "savedAt", "date", "doctor"]
@@ -79,6 +121,14 @@
       "properties": {
         "beds": { "type": "number" },
         "rooms": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "insulins": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "doctors": {
           "type": "array",
           "items": { "type": "string" }
         }
@@ -93,6 +143,10 @@
     "/recs/{recId}": {
       "schema": "VitalRecord",
       "description": "Vital records collection"
+    },
+    "/glucose_records/{recordId}": {
+      "schema": "GlucoseRecord",
+      "description": "Blood sugar records collection"
     },
     "/scheds/{schedId}": {
       "schema": "ScheduleItem",

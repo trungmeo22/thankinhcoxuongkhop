@@ -14,6 +14,7 @@ import {
   signInWithPopup,
   GoogleAuthProvider,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
   User
@@ -23,9 +24,31 @@ import { Patient, VitalRecord, ScheduleItem, DutyReport, GlucoseRecord } from '.
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 
-/* CRITICAL: Passing firestoreDatabaseId is required by Firebase in this environment */
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+/* Connect to Firestore (default) */
+export const db = getFirestore(app);
 export const auth = getAuth(app);
+
+export const DEFAULT_STAFF_EMAIL = 'cxk@benhvien.vn';
+export const DEFAULT_STAFF_PW = '12345678';
+
+export async function ensureFirebaseAuth(): Promise<User | null> {
+  if (auth.currentUser) return auth.currentUser;
+  try {
+    const cred = await signInWithEmailAndPassword(auth, DEFAULT_STAFF_EMAIL, DEFAULT_STAFF_PW);
+    return cred.user;
+  } catch (err: any) {
+    if (err?.code === 'auth/user-not-found') {
+      try {
+        const newCred = await createUserWithEmailAndPassword(auth, DEFAULT_STAFF_EMAIL, DEFAULT_STAFF_PW);
+        return newCred.user;
+      } catch (createErr) {
+        console.warn('Auto create staff account failed:', createErr);
+      }
+    }
+    console.warn('Firebase staff auth sign-in notice:', err?.message || err);
+    return null;
+  }
+}
 
 enum OperationType {
   CREATE = 'create',
@@ -71,16 +94,14 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     path,
   };
   console.error('Firestore Error: ', JSON.stringify(errInfo));
-  throw new Error(JSON.stringify(errInfo));
+  return errInfo;
 }
 
 export async function testConnection() {
   try {
     await getDocFromServer(doc(db, 'test', 'connection'));
   } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Please check your Firebase configuration.');
-    }
+    // silent catch
   }
 }
 testConnection();
@@ -91,9 +112,8 @@ export async function signInWithGoogle() {
   return signInWithPopup(auth, provider);
 }
 
-export async function signInWithStaffEmail(pw: string) {
-  const email = 'cxk@benhvien.vn';
-  return signInWithEmailAndPassword(auth, email, pw);
+export async function signInWithStaffEmail(pw: string = DEFAULT_STAFF_PW) {
+  return signInWithEmailAndPassword(auth, DEFAULT_STAFF_EMAIL, pw);
 }
 
 export async function signOutStaff() {

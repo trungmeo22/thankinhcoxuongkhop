@@ -4,6 +4,7 @@ import {
   auth,
   db,
   signOutStaff,
+  ensureFirebaseAuth,
   savePatientToFirestore,
   deletePatientFromFirestore,
   saveRecToFirestore,
@@ -123,8 +124,14 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // Listen to Firebase Auth state
+  // Listen to Firebase Auth state and auto-ensure staff credentials
   useEffect(() => {
+    ensureFirebaseAuth()
+      .then((u) => {
+        if (u) setCurrentUser(u);
+      })
+      .catch((e) => console.warn('ensureFirebaseAuth notice:', e));
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         setCurrentUser(user);
@@ -163,38 +170,49 @@ export default function App() {
     }
   }, []);
 
-  // Connect to Firestore Realtime Listeners when authenticated with Firebase
+  // Connect to Firestore Realtime Listeners for all clinical collections
   useEffect(() => {
-    if (!currentUser) return;
-
     setSyncStatus('saving');
 
     const unsubs: (() => void)[] = [];
+    let initialPatientsHandled = false;
 
     // 1. Patients collection
     const unsubsPatients = onSnapshot(
       collection(db, 'patients'),
       (snapshot) => {
         const list: Patient[] = [];
-        const demoToRemove: Patient[] = [];
         snapshot.forEach((doc) => {
           const p = doc.data() as Patient;
-          if (DEMO_PATIENT_NAMES.has(p.name)) {
-            demoToRemove.push(p);
-          } else {
+          if (!DEMO_PATIENT_NAMES.has(p.name)) {
             list.push(p);
           }
         });
 
-        // Clean out any legacy mockups from Firestore
-        if (demoToRemove.length > 0) {
-          demoToRemove.forEach((p) => {
-            deletePatientFromFirestore(p.id).catch(() => {});
-          });
+        if (list.length > 0) {
+          setPatients(list);
+          saveLocalData({ patients: list });
+        } else if (!initialPatientsHandled) {
+          // If Firestore is empty, check if this browser has local patients to seed/upload
+          const local = getInitialLocalData();
+          if (local.patients && local.patients.length > 0) {
+            console.log('Seeding existing local data to Firestore:', local.patients.length, 'patients');
+            local.patients.forEach((p) => {
+              savePatientToFirestore(p).catch((err) => console.warn('Seed patient error:', err));
+            });
+            (local.recs || []).forEach((r) => saveRecToFirestore(r).catch(() => {}));
+            (local.glucoseRecords || []).forEach((g) => saveGlucoseToFirestore(g).catch(() => {}));
+            (local.scheds || []).forEach((s) => saveSchedToFirestore(s).catch(() => {}));
+            (local.reports || []).forEach((rep) => saveReportToFirestore(rep).catch(() => {}));
+            saveSettingsToFirestore({
+              beds: local.beds || 30,
+              rooms: local.rooms || DEFAULT_ROOMS,
+              insulins: local.insulins || DEFAULT_INSULINS,
+              doctors: local.doctors || DEFAULT_DOCTORS,
+            }).catch(() => {});
+          }
         }
-
-        setPatients(list);
-        saveLocalData({ patients: list, recs, scheds, reports, beds, rooms });
+        initialPatientsHandled = true;
         setSyncStatus('ok');
       },
       (err) => {
@@ -209,21 +227,13 @@ export default function App() {
       collection(db, 'recs'),
       (snapshot) => {
         const list: VitalRecord[] = [];
-        const demoToRemove: VitalRecord[] = [];
         snapshot.forEach((doc) => {
           const r = doc.data() as VitalRecord;
-          if (r.pid <= 27) {
-            demoToRemove.push(r);
-          } else {
+          if (r.pid > 27) {
+            if (!r.tx) r.tx = [];
             list.push(r);
           }
         });
-
-        if (demoToRemove.length > 0) {
-          demoToRemove.forEach((r) => {
-            deleteRecFromFirestore(r.id).catch(() => {});
-          });
-        }
 
         setRecs(list);
         saveLocalData({ recs: list });
@@ -239,21 +249,12 @@ export default function App() {
       collection(db, 'scheds'),
       (snapshot) => {
         const list: ScheduleItem[] = [];
-        const demoToRemove: ScheduleItem[] = [];
         snapshot.forEach((doc) => {
           const s = doc.data() as ScheduleItem;
-          if (s.patientId <= 27 || s.id <= 50) {
-            demoToRemove.push(s);
-          } else {
+          if (s.patientId > 27 && s.id > 50) {
             list.push(s);
           }
         });
-
-        if (demoToRemove.length > 0) {
-          demoToRemove.forEach((s) => {
-            deleteSchedFromFirestore(s.id).catch(() => {});
-          });
-        }
 
         setScheds(list);
         saveLocalData({ scheds: list });
@@ -269,21 +270,13 @@ export default function App() {
       collection(db, 'reports'),
       (snapshot) => {
         const list: DutyReport[] = [];
-        const demoToRemove: DutyReport[] = [];
         snapshot.forEach((doc) => {
           const rep = doc.data() as DutyReport;
-          if (rep.id === 1) {
-            demoToRemove.push(rep);
-          } else {
+          if (rep.id !== 1) {
+            if (!rep.blocks) rep.blocks = [];
             list.push(rep);
           }
         });
-
-        if (demoToRemove.length > 0) {
-          demoToRemove.forEach((rep) => {
-            deleteReportFromFirestore(rep.id).catch(() => {});
-          });
-        }
 
         list.sort((a, b) => (b.savedAt || 0) - (a.savedAt || 0));
         setReports(list);
@@ -317,7 +310,7 @@ export default function App() {
             saveLocalData({ beds: data.beds, rooms: data.rooms, insulins: data.insulins, doctors: data.doctors });
           }
         } else {
-          saveSettingsToFirestore({ beds: 30, rooms: DEFAULT_ROOMS, insulins: DEFAULT_INSULINS, doctors: DEFAULT_DOCTORS });
+          saveSettingsToFirestore({ beds: 30, rooms: DEFAULT_ROOMS, insulins: DEFAULT_INSULINS, doctors: DEFAULT_DOCTORS }).catch(() => {});
         }
       },
       (err) => {
@@ -346,7 +339,7 @@ export default function App() {
     return () => {
       unsubs.forEach((unsub) => unsub());
     };
-  }, [currentUser]);
+  }, []);
 
   // Auth actions
   const handleSignOut = async () => {
@@ -363,31 +356,33 @@ export default function App() {
   const handlePasswordLoginSuccess = () => {
     setLocalAuthenticated(true);
     setIsDemoUser(true);
+    ensureFirebaseAuth()
+      .then((u) => {
+        if (u) setCurrentUser(u);
+      })
+      .catch((e) => console.warn('ensureFirebaseAuth notice:', e));
   };
 
   // Clinical data updates
   const handleSavePatient = async (patientData: Partial<Patient>) => {
     setSyncStatus('saving');
+    let targetPatient: Patient;
     if (editingPatient) {
-      const updated: Patient = {
+      targetPatient = {
         ...editingPatient,
         ...patientData,
       } as Patient;
 
-      const next = patients.map((p) => (p.id === editingPatient.id ? updated : p));
+      const next = patients.map((p) => (p.id === editingPatient.id ? targetPatient : p));
       setPatients(next);
-
-      if (currentUser) {
-        await savePatientToFirestore(updated);
-      } else {
-        saveLocalData({ patients: next, recs, scheds, reports, beds });
-      }
+      saveLocalData({ patients: next, recs, scheds, reports, beds, rooms });
     } else {
-      const newPt: Patient = {
+      targetPatient = {
         id: uid(),
         name: patientData.name || '',
         age: patientData.age || '',
         room: patientData.room || '',
+        doctor: patientData.doctor || '',
         note: patientData.note || '',
         admitAt: patientData.admitAt || Date.now(),
         status: 'in',
@@ -399,15 +394,17 @@ export default function App() {
         av: patientData.av,
       };
 
-      const next = [newPt, ...patients];
+      const next = [targetPatient, ...patients];
       setPatients(next);
-
-      if (currentUser) {
-        await savePatientToFirestore(newPt);
-      } else {
-        saveLocalData({ patients: next, recs, scheds, reports, beds });
-      }
+      saveLocalData({ patients: next, recs, scheds, reports, beds, rooms });
     }
+
+    try {
+      await savePatientToFirestore(targetPatient);
+    } catch (e) {
+      console.warn('Save patient firestore error:', e);
+    }
+
     setSyncStatus('ok');
     setAdmitModalOpen(false);
     setEditingPatient(null);
@@ -429,15 +426,16 @@ export default function App() {
       };
     });
     setPatients(nextPts);
+    saveLocalData({ patients: nextPts, recs: nextRecs, scheds, reports, beds });
 
-    if (currentUser) {
+    try {
       await saveRecToFirestore(record);
       const updatedPt = nextPts.find((p) => p.id === record.pid);
       if (updatedPt) {
         await savePatientToFirestore(updatedPt);
       }
-    } else {
-      saveLocalData({ patients: nextPts, recs: nextRecs, scheds, reports, beds });
+    } catch (e) {
+      console.warn('Save vital record firestore error:', e);
     }
 
     setSyncStatus('ok');
@@ -449,12 +447,14 @@ export default function App() {
     setSyncStatus('saving');
     const nextRecs = recs.filter((r) => r.id !== id);
     setRecs(nextRecs);
+    saveLocalData({ patients, recs: nextRecs, scheds, reports, beds });
 
-    if (currentUser) {
+    try {
       await deleteRecFromFirestore(id);
-    } else {
-      saveLocalData({ patients, recs: nextRecs, scheds, reports, beds });
+    } catch (e) {
+      console.warn('Delete vital record firestore error:', e);
     }
+
     setSyncStatus('ok');
   };
 
@@ -469,11 +469,14 @@ export default function App() {
       return targetRec;
     });
     setRecs(nextRecs);
+    saveLocalData({ patients, recs: nextRecs, scheds, reports, beds });
 
-    if (currentUser && targetRec) {
-      await saveRecToFirestore(targetRec);
-    } else {
-      saveLocalData({ patients, recs: nextRecs, scheds, reports, beds });
+    if (targetRec) {
+      try {
+        await saveRecToFirestore(targetRec);
+      } catch (e) {
+        console.warn('Save treatment firestore error:', e);
+      }
     }
   };
 
@@ -481,11 +484,12 @@ export default function App() {
     setSyncStatus('saving');
     const next = [...scheds, schedule];
     setScheds(next);
+    saveLocalData({ patients, recs, scheds: next, reports, beds });
 
-    if (currentUser) {
+    try {
       await saveSchedToFirestore(schedule);
-    } else {
-      saveLocalData({ patients, recs, scheds: next, reports, beds });
+    } catch (e) {
+      console.warn('Save schedule firestore error:', e);
     }
 
     setSyncStatus('ok');
@@ -503,22 +507,26 @@ export default function App() {
       return s;
     });
     setScheds(next);
+    saveLocalData({ patients, recs, scheds: next, reports, beds });
 
-    if (currentUser && target) {
-      await saveSchedToFirestore(target);
-    } else {
-      saveLocalData({ patients, recs, scheds: next, reports, beds });
+    if (target) {
+      try {
+        await saveSchedToFirestore(target);
+      } catch (e) {
+        console.warn('Toggle schedule firestore error:', e);
+      }
     }
   };
 
   const handleDeleteSchedule = async (id: number) => {
     const next = scheds.filter((s) => s.id !== id);
     setScheds(next);
+    saveLocalData({ patients, recs, scheds: next, reports, beds });
 
-    if (currentUser) {
+    try {
       await deleteSchedFromFirestore(id);
-    } else {
-      saveLocalData({ patients, recs, scheds: next, reports, beds });
+    } catch (e) {
+      console.warn('Delete schedule firestore error:', e);
     }
   };
 
@@ -539,11 +547,14 @@ export default function App() {
       return updatedPt;
     });
     setPatients(next);
+    saveLocalData({ patients: next, recs, scheds, reports, beds });
 
-    if (currentUser && updatedPt) {
-      await savePatientToFirestore(updatedPt);
-    } else {
-      saveLocalData({ patients: next, recs, scheds, reports, beds });
+    if (updatedPt) {
+      try {
+        await savePatientToFirestore(updatedPt);
+      } catch (e) {
+        console.warn('Save discharge firestore error:', e);
+      }
     }
 
     setDischargeModalOpen(false);
@@ -564,11 +575,14 @@ export default function App() {
       return updatedPt;
     });
     setPatients(next);
+    saveLocalData({ patients: next, recs, scheds, reports, beds });
 
-    if (currentUser && updatedPt) {
-      await savePatientToFirestore(updatedPt);
-    } else {
-      saveLocalData({ patients: next, recs, scheds, reports, beds });
+    if (updatedPt) {
+      try {
+        await savePatientToFirestore(updatedPt);
+      } catch (e) {
+        console.warn('Cancel discharge firestore error:', e);
+      }
     }
 
     setDischargeModalOpen(false);
@@ -582,21 +596,24 @@ export default function App() {
       ? reports.map((r) => (r.id === report.id ? report : r))
       : [report, ...reports];
     setReports(next);
+    saveLocalData({ patients, recs, scheds, reports: next, beds });
 
-    if (currentUser) {
+    try {
       await saveReportToFirestore(report);
-    } else {
-      saveLocalData({ patients, recs, scheds, reports: next, beds });
+    } catch (e) {
+      console.warn('Save report firestore error:', e);
     }
+
     setSyncStatus('ok');
   };
 
   const handleUpdateBeds = async (newBeds: number) => {
     setBeds(newBeds);
-    if (currentUser) {
-      await saveSettingsToFirestore({ beds: newBeds, rooms });
-    } else {
-      saveLocalData({ patients, recs, scheds, reports, beds: newBeds, rooms });
+    saveLocalData({ patients, recs, scheds, reports, beds: newBeds, rooms });
+    try {
+      await saveSettingsToFirestore({ beds: newBeds, rooms, insulins, doctors });
+    } catch (e) {
+      console.warn('Update beds firestore error:', e);
     }
   };
 
@@ -607,11 +624,29 @@ export default function App() {
     setRooms(newRooms);
     setInsulins(targetInsulins);
     setDoctors(targetDoctors);
-    if (currentUser) {
-      await saveSettingsToFirestore({ beds: newBeds, rooms: newRooms, insulins: targetInsulins, doctors: targetDoctors });
-    } else {
-      saveLocalData({ patients, recs, scheds, reports, glucoseRecords, beds: newBeds, rooms: newRooms, insulins: targetInsulins, doctors: targetDoctors });
+    saveLocalData({
+      patients,
+      recs,
+      scheds,
+      reports,
+      glucoseRecords,
+      beds: newBeds,
+      rooms: newRooms,
+      insulins: targetInsulins,
+      doctors: targetDoctors,
+    });
+
+    try {
+      await saveSettingsToFirestore({
+        beds: newBeds,
+        rooms: newRooms,
+        insulins: targetInsulins,
+        doctors: targetDoctors,
+      });
+    } catch (e) {
+      console.warn('Save settings firestore error:', e);
     }
+
     setSettingsModalOpen(false);
   };
 
@@ -622,12 +657,14 @@ export default function App() {
       ? glucoseRecords.map((g) => (g.id === record.id ? record : g))
       : [record, ...glucoseRecords];
     setGlucoseRecords(next);
+    saveLocalData({ patients, recs, scheds, reports, glucoseRecords: next, beds, rooms });
 
-    if (currentUser) {
+    try {
       await saveGlucoseToFirestore(record);
-    } else {
-      saveLocalData({ patients, recs, scheds, reports, glucoseRecords: next, beds, rooms });
+    } catch (e) {
+      console.warn('Save glucose record firestore error:', e);
     }
+
     setSyncStatus('ok');
   };
 
@@ -635,12 +672,14 @@ export default function App() {
     setSyncStatus('saving');
     const next = glucoseRecords.filter((g) => g.id !== id);
     setGlucoseRecords(next);
+    saveLocalData({ patients, recs, scheds, reports, glucoseRecords: next, beds, rooms });
 
-    if (currentUser) {
+    try {
       await deleteGlucoseFromFirestore(id);
-    } else {
-      saveLocalData({ patients, recs, scheds, reports, glucoseRecords: next, beds, rooms });
+    } catch (e) {
+      console.warn('Delete glucose record firestore error:', e);
     }
+
     setSyncStatus('ok');
   };
 

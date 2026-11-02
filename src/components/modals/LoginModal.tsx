@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Activity, Lock, AlertCircle, ArrowRight } from 'lucide-react';
 import { getLocalPassword } from '../../lib/storage';
+import { ensureFirebaseAuth } from '../../lib/firebase';
 
 interface LoginModalProps {
   onSuccess: () => void;
@@ -11,7 +12,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onSuccess }) => {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const handlePasswordLogin = (e: React.FormEvent) => {
+  const handlePasswordLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const entered = password.trim();
     if (!entered) {
@@ -24,10 +25,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onSuccess }) => {
 
     const savedPassword = getLocalPassword();
     if (entered === '123' || entered === savedPassword) {
-      setTimeout(() => {
-        setBusy(false);
-        onSuccess();
-      }, 150);
+      try {
+        await ensureFirebaseAuth();
+      } catch (authErr) {
+        console.warn('Firebase staff auth notice:', authErr);
+      }
+      setBusy(false);
+      onSuccess();
     } else {
       setBusy(false);
       setErr('Mật khẩu không chính xác.');
