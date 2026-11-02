@@ -707,8 +707,12 @@ export default function App() {
               setAdmitModalOpen(true);
             }}
             onOpenVitals={(p) => {
-              setHistoryTargetPatient(p);
-              setHistoryModalOpen(true);
+              setVitalsTargetPatient(p);
+              setVitalsModalOpen(true);
+            }}
+            onOpenRecordVitals={(p) => {
+              setVitalsTargetPatient(p);
+              setVitalsModalOpen(true);
             }}
             onOpenOrder={(p) => {
               setOrderTargetPatient(p);
@@ -872,6 +876,8 @@ export default function App() {
             setHistoryTargetPatient(null);
           }}
           onOpenRecordVitals={(p) => {
+            setHistoryModalOpen(false);
+            setHistoryTargetPatient(null);
             setVitalsTargetPatient(p);
             setVitalsModalOpen(true);
           }}

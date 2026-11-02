@@ -160,6 +160,7 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
                         placeholder="Gõ tên hoặc số phòng..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
+                        autoFocus={!initialPatient}
                         className="w-full pl-9 pr-3 py-2 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none"
                       />
                     </div>
@@ -205,6 +206,7 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
                     placeholder="80"
                     value={pulse}
                     onChange={(e) => setPulse(e.target.value)}
+                    autoFocus={!!initialPatient}
                     className="w-full px-1.5 py-1.5 rounded-lg border border-[#C3CAC4] text-center font-semibold text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-white"
                   />
                 </div>

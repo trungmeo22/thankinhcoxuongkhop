@@ -46,7 +46,6 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
   const todayStr = isoDay(now);
 
   const [q, setQ] = useState<string>('');
-  const [filterMode, setFilterMode] = useState<'all' | 'tested' | 'untested'>('all');
   const [showDischarged, setShowDischarged] = useState<boolean>(false);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
@@ -80,9 +79,9 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
     return map;
   }, [glucoseRecords]);
 
-  // Patients list (in-patients or both)
-  const availablePatients = useMemo(() => {
-    let list = patients;
+  // Patients list: CHỈ hiển thị những bệnh nhân có kết quả test
+  const testedPatients = useMemo(() => {
+    let list = patients.filter((p) => (recordsByPatient[p.id] || []).length > 0);
     if (!showDischarged) {
       list = list.filter((p) => isIn(p, now));
     }
@@ -92,32 +91,23 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
       if (inA !== inB) return inA ? -1 : 1;
       return String(a.room).localeCompare(String(b.room), 'vi', { numeric: true });
     });
-  }, [patients, showDischarged, now]);
+  }, [patients, recordsByPatient, showDischarged, now]);
 
-  // Filter patients by search & filterMode
+  // Filter patients by search query
   const filteredPatients = useMemo(() => {
     const qClean = q.trim().toLowerCase();
-    return availablePatients.filter((p) => {
-      const pRecords = recordsByPatient[p.id] || [];
-      const hasTests = pRecords.length > 0;
-
-      if (filterMode === 'tested' && !hasTests) return false;
-      if (filterMode === 'untested' && hasTests) return false;
-
-      if (!qClean) return true;
+    if (!qClean) return testedPatients;
+    return testedPatients.filter((p) => {
       return (
         p.name.toLowerCase().includes(qClean) ||
         p.room.toLowerCase().includes(qClean) ||
         (p.note && p.note.toLowerCase().includes(qClean))
       );
     });
-  }, [availablePatients, recordsByPatient, q, filterMode]);
+  }, [testedPatients, q]);
 
   // Stats
   const totalTestsCount = glucoseRecords.length;
-  const testedPatientsCount = useMemo(() => {
-    return availablePatients.filter((p) => (recordsByPatient[p.id] || []).length > 0).length;
-  }, [availablePatients, recordsByPatient]);
 
   const toggleExpand = (pid: number) => {
     setExpandedIds((prev) => {
@@ -227,43 +217,6 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
             />
           </div>
 
-          {/* Quick Filter Buttons */}
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setFilterMode('all')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                filterMode === 'all'
-                  ? 'bg-[#0E6B5E] text-white shadow-xs'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Tất cả ({availablePatients.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterMode('tested')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                filterMode === 'tested'
-                  ? 'bg-[#0E6B5E] text-white shadow-xs'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Đã có test ({testedPatientsCount})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterMode('untested')}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
-                filterMode === 'untested'
-                  ? 'bg-[#0E6B5E] text-white shadow-xs'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Chưa test ({availablePatients.length - testedPatientsCount})
-            </button>
-          </div>
-
           {/* Expand / Collapse All buttons */}
           <div className="flex items-center gap-1.5 shrink-0 ml-auto">
             <button
@@ -289,7 +242,7 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#EEF0ED] text-xs text-gray-500">
           <div className="flex items-center gap-3">
             <span>
-              Hiển thị: <strong>{filteredPatients.length}</strong> bệnh nhân
+              Bệnh nhân có kết quả test: <strong className="text-[#0F2F2A]">{filteredPatients.length}</strong>
             </span>
             <span>·</span>
             <span>
@@ -314,8 +267,12 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
         {!filteredPatients.length ? (
           <div className="p-8 bg-white rounded-2xl border border-[#DDE1DC] text-center text-xs text-gray-500 space-y-2">
             <History className="w-8 h-8 text-gray-300 mx-auto" />
-            <p className="font-semibold text-gray-700">Không tìm thấy bệnh nhân nào phù hợp với bộ lọc.</p>
-            <p className="text-gray-400">Hãy thử đổi từ khóa tìm kiếm hoặc bấm nút "Thêm kết quả test".</p>
+            <p className="font-semibold text-gray-700">
+              {q ? 'Không tìm thấy bệnh nhân nào có kết quả test phù hợp.' : 'Chưa có bệnh nhân nào có kết quả test đường huyết.'}
+            </p>
+            <p className="text-gray-400">
+              Bấm nút <strong>"Thêm kết quả test"</strong> ở trên để ghi nhận kết quả cho bệnh nhân trong khoa.
+            </p>
           </div>
         ) : (
           filteredPatients.map((p) => {

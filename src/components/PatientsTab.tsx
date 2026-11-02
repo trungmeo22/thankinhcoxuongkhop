@@ -22,6 +22,7 @@ interface PatientsTabProps {
   onOpenAdmit: () => void;
   onEditPatient: (p: Patient) => void;
   onOpenVitals: (p: Patient) => void;
+  onOpenRecordVitals?: (p: Patient) => void;
   onOpenOrder: (p: Patient) => void;
   onOpenDischarge: (p: Patient) => void;
   onAddTreatment: (recordId: number, text: string) => void;
@@ -43,6 +44,7 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
   onOpenAdmit,
   onEditPatient,
   onOpenVitals,
+  onOpenRecordVitals,
   onOpenOrder,
   onOpenDischarge,
   onAddTreatment,
@@ -79,7 +81,7 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
         insulins={insulins}
         onBack={() => setSelectedPatientId(null)}
         onEditPatient={onEditPatient}
-        onOpenRecordVitals={onOpenVitals}
+        onOpenRecordVitals={onOpenRecordVitals || onOpenVitals}
         onAddTreatment={onAddTreatment}
         onSaveGlucoseRecord={onSaveGlucoseRecord}
         onDeleteGlucoseRecord={onDeleteGlucoseRecord}
@@ -395,7 +397,7 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
           </button>
           <button
             type="button"
-            onClick={() => onOpenVitals(p)}
+            onClick={() => (onOpenRecordVitals ? onOpenRecordVitals(p) : onOpenVitals(p))}
             className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#0E6B5E] bg-white hover:bg-[#E4F0EC] text-[#0B5C51] text-xs font-semibold transition-colors cursor-pointer"
           >
             <HeartPulse className="w-3.5 h-3.5" />
