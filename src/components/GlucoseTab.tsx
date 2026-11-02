@@ -47,7 +47,6 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
   const todayStr = isoDay(now);
 
   const [q, setQ] = useState<string>('');
-  const [showDischarged, setShowDischarged] = useState<boolean>(false);
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
 
   // Modals state
@@ -80,19 +79,14 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
     return map;
   }, [glucoseRecords]);
 
-  // Patients list: CHỈ hiển thị những bệnh nhân có kết quả test
+  // Patients list: CHỈ hiển thị những bệnh nhân đang điều trị có kết quả test
   const testedPatients = useMemo(() => {
-    let list = patients.filter((p) => (recordsByPatient[p.id] || []).length > 0);
-    if (!showDischarged) {
-      list = list.filter((p) => isIn(p, now));
-    }
-    return list.slice().sort((a, b) => {
-      const inA = isIn(a, now);
-      const inB = isIn(b, now);
-      if (inA !== inB) return inA ? -1 : 1;
-      return String(a.room).localeCompare(String(b.room), 'vi', { numeric: true });
-    });
-  }, [patients, recordsByPatient, showDischarged, now]);
+    return patients
+      .filter((p) => isIn(p, now) && (recordsByPatient[p.id] || []).length > 0)
+      .sort((a, b) =>
+        String(a.room).localeCompare(String(b.room), 'vi', { numeric: true })
+      );
+  }, [patients, recordsByPatient, now]);
 
   // Filter patients by search query
   const filteredPatients = useMemo(() => {
@@ -207,8 +201,8 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
           </button>
         </div>
 
-        {/* Subline: Stats, Expand/Collapse & Discharged Toggle */}
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#EEF0ED] text-xs text-gray-500">
+        {/* Subline: Stats */}
+        <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#EEF0ED] text-xs text-gray-500">
           <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs">
             <span>
               Bệnh nhân test: <strong className="text-[#0F2F2A]">{filteredPatients.length}</strong>
@@ -218,16 +212,6 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
               Tổng lượt: <strong className="text-emerald-800">{totalTestsCount}</strong>
             </span>
           </div>
-
-          <label className="inline-flex items-center gap-1.5 cursor-pointer select-none text-[11px] text-gray-600 hover:text-gray-900 shrink-0">
-            <input
-              type="checkbox"
-              checked={showDischarged}
-              onChange={(e) => setShowDischarged(e.target.checked)}
-              className="rounded text-[#0E6B5E] focus:ring-[#0E6B5E]"
-            />
-            <span>Xem cả đã xuất viện</span>
-          </label>
         </div>
       </div>
 
