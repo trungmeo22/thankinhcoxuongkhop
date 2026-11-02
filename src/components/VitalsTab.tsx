@@ -16,7 +16,7 @@ import {
   KIND_LABELS,
   fold,
 } from '../lib/constants';
-import { Plus, FileSpreadsheet, AlertTriangle, Calendar, ChevronDown, ChevronUp, ArrowLeft, Search, X } from 'lucide-react';
+import { Plus, FileSpreadsheet, AlertTriangle, Calendar, Clock, ChevronDown, ChevronUp, ArrowLeft, Search, X } from 'lucide-react';
 import { VitalsTimelineTable } from './VitalsTimelineTable';
 
 interface VitalsTabProps {
@@ -238,13 +238,22 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
                     const fullTimeline = getPatientFullTimeline(p);
                     const records = getPatientDayRecords(p);
                     const out = isOut(p);
+                    const latestDayRec = records.length > 0 ? records[records.length - 1] : null;
+                    const latestFullRec = fullTimeline.length > 0 ? fullTimeline[fullTimeline.length - 1] : null;
+                    const displayRec = latestDayRec || latestFullRec;
 
                     return (
-                      <div key={p.id} className="p-4 space-y-3">
-                        {/* Top: Name, Age, Doctor, Action buttons */}
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <strong className="text-sm text-[#17201D]">{p.name}</strong>
+                      <div key={p.id} className="transition-colors">
+                        {/* Collapsed / Summary Header Row (Click to toggle expansion) */}
+                        <div
+                          onClick={() => toggleExpand(p.id)}
+                          className={`p-3 sm:p-3.5 flex flex-wrap items-center justify-between gap-2.5 cursor-pointer select-none transition-colors ${
+                            isExpanded ? 'bg-emerald-50/40 border-b border-emerald-100' : 'bg-white hover:bg-gray-50/80'
+                          }`}
+                        >
+                          {/* Left: Patient Name, Age, Doctor, Status, Count Badge */}
+                          <div className="flex items-center gap-2 flex-wrap min-w-[200px]">
+                            <strong className="text-sm text-[#17201D] font-bold">{p.name}</strong>
                             <span className="text-xs text-[#56615C]">{ageText(p)}</span>
                             {p.doctor && (
                               <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[11px] font-semibold border border-emerald-200">
@@ -256,111 +265,181 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
                                 {KIND_LABELS[p.outKind || 'ra']}
                               </span>
                             )}
-                            <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-800 text-[11px] font-semibold border border-emerald-100">
-                              {fullTimeline.length} lần ghi nhận
-                            </span>
+                            {records.length > 0 ? (
+                              <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 text-[11px] font-bold">
+                                {records.length} lần đo ngày {dm(dStart)}
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[11px] font-medium">
+                                {fullTimeline.length > 0 ? `${fullTimeline.length} lần (hồ sơ)` : 'Chưa có DHST'}
+                              </span>
+                            )}
                           </div>
 
-                          <div className="flex items-center gap-2">
+                          {/* Middle / Right: Latest Vitals Snippet & Action Buttons */}
+                          <div className="flex items-center gap-2 flex-wrap ml-auto">
+                            {/* Latest measurement snippet if available */}
+                            {displayRec && (
+                              <div className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-gray-50 border border-gray-200 text-xs">
+                                <Clock className="w-3 h-3 text-gray-400 shrink-0" />
+                                <span className="font-semibold text-gray-700">{hm(displayRec.at)}:</span>
+                                {displayRec.pulse && <span>M: <strong className="text-emerald-800">{displayRec.pulse}</strong></span>}
+                                {displayRec.bp && <span>HA: <strong className="text-emerald-800">{displayRec.bp}</strong></span>}
+                                {displayRec.temp && <span>{displayRec.temp}°C</span>}
+                                {displayRec.spo2 && <span>SpO₂: <strong>{displayRec.spo2}%</strong></span>}
+                              </div>
+                            )}
+
+                            {/* Quick Add Button */}
                             <button
                               type="button"
-                              onClick={() => onOpenRecordModal(p)}
-                              className="px-2.5 py-1 rounded-lg border border-[#0E6B5E] bg-white hover:bg-[#E4F0EC] text-[#0B5C51] text-xs font-semibold transition-colors cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenRecordModal(p);
+                              }}
+                              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-[#0E6B5E] bg-white hover:bg-emerald-50 text-[#0B5C51] text-xs font-semibold transition-colors cursor-pointer active:scale-95 shadow-xs"
+                              title="Ghi DHST cho bệnh nhân này"
                             >
-                              + Ghi
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>+ Ghi</span>
                             </button>
+
+                            {/* Patient Profile */}
                             <button
                               type="button"
-                              onClick={() => onOpenPatientHistory(p)}
-                              className="px-2.5 py-1 rounded-lg bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-800 transition-colors cursor-pointer"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenPatientHistory(p);
+                              }}
+                              className="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-medium text-gray-700 transition-colors cursor-pointer"
+                              title="Xem hồ sơ bệnh nhân"
                             >
-                              Xem hồ sơ
+                              Hồ sơ
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => toggleExpand(p.id)}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#E4F0EC] hover:bg-[#d5e7e1] text-[#0B5C51] text-xs font-bold transition-colors cursor-pointer"
-                              title={isExpanded ? 'Thu gọn dòng thời gian' : 'Xem dòng thời gian trượt ngang'}
-                            >
-                              <span>{isExpanded ? 'Thu gọn' : 'Dòng thời gian'}</span>
+
+                            {/* Expand / Collapse Indicator */}
+                            <div className="flex items-center gap-1 pl-1 text-xs font-semibold text-[#0E6B5E]">
+                              <span className="hidden md:inline">{isExpanded ? 'Thu gọn' : 'Chi tiết'}</span>
                               {isExpanded ? (
-                                <ChevronUp className="w-3.5 h-3.5" />
+                                <ChevronUp className="w-4 h-4 text-[#0E6B5E]" />
                               ) : (
-                                <ChevronDown className="w-3.5 h-3.5" />
+                                <ChevronDown className="w-4 h-4 text-gray-400" />
                               )}
-                            </button>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Full Timeline Table (when expanded) OR Single Day Table (when collapsed) */}
-                        {isExpanded ? (
-                          <div className="pt-2 animate-in fade-in duration-150">
-                            <VitalsTimelineTable
-                              items={fullTimeline}
-                              patient={p}
-                              onAddVitals={() => onOpenRecordModal(p)}
-                              onAddTreatment={onAddTreatment}
-                            />
-                          </div>
-                        ) : !records.length ? (
-                          <div className="text-xs text-[#8A948F] italic py-1">
-                            Chưa ghi nhận DHST trong ngày này.
-                          </div>
-                        ) : (
-                          <div className="border border-[#E6E9E5] rounded-xl overflow-hidden">
-                            {/* Table Header */}
-                            <div className="grid grid-cols-6 bg-[#F3F4F1] text-[11px] font-bold text-[#3A4540] px-3 py-2 border-b border-[#E6E9E5]">
-                              <div>Giờ</div>
-                              <div>Mạch</div>
-                              <div>Huyết áp</div>
-                              <div>Nhiệt độ</div>
-                              <div>SpO₂</div>
-                              <div>Nhịp thở</div>
-                            </div>
+                        {/* Expanded Section: Day Table & Full Timeline (Only when expanded) */}
+                        {isExpanded && (
+                          <div className="p-3.5 sm:p-4 bg-[#FAFBF9] space-y-3 animate-in fade-in duration-150">
+                            {records.length > 0 ? (
+                              <div className="space-y-2.5">
+                                <div className="flex items-center justify-between text-xs text-gray-600">
+                                  <span className="font-bold text-[#0F2F2A]">
+                                    Bảng theo dõi ngày {dm(dStart)} ({records.length} lần đo):
+                                  </span>
+                                  {fullTimeline.length > records.length && (
+                                    <span className="text-[11px] text-[#56615C]">
+                                      Tổng hồ sơ: {fullTimeline.length} lần ghi nhận
+                                    </span>
+                                  )}
+                                </div>
 
-                            {/* Table Rows */}
-                            <div className="divide-y divide-[#EEF0ED]">
-                              {records.map((r, rIdx) => {
-                                const details = getVitals(r);
-                                return (
-                                  <div key={rIdx} className="text-xs">
-                                    <div className="grid grid-cols-6 px-3 py-2 font-medium">
-                                      <div className="font-bold text-[#17201D]">{hm(r.at)}</div>
-                                      {details.map((vd, vIdx) => (
-                                        <div
-                                          key={vIdx}
-                                          className={
-                                            vd.bad
-                                              ? 'font-bold text-[#7E3204] bg-[#FDF0E5] px-1 rounded-xs inline-block'
-                                              : 'text-[#2B3531]'
-                                          }
-                                        >
-                                          {vd.raw}
-                                        </div>
-                                      ))}
-                                    </div>
-
-                                    {/* Note if present */}
-                                    {r.note && (
-                                      <div className="px-3 pb-2 pt-0.5 text-xs text-[#2B3531] flex items-start gap-1.5">
-                                        <span
-                                          className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
-                                            r.isAdmit
-                                              ? 'bg-blue-100 text-blue-800'
-                                              : r.abn
-                                              ? 'bg-amber-100 text-amber-900'
-                                              : 'bg-gray-100 text-gray-700'
-                                          }`}
-                                        >
-                                          {r.isAdmit ? 'Nhập viện' : r.abn ? 'Bất thường' : 'Ghi chú'}
-                                        </span>
-                                        <span className="flex-1">{r.note}</span>
-                                      </div>
-                                    )}
+                                <div className="border border-[#E6E9E5] rounded-xl overflow-hidden bg-white shadow-2xs">
+                                  {/* Table Header */}
+                                  <div className="grid grid-cols-6 bg-[#F3F4F1] text-[11px] font-bold text-[#3A4540] px-3 py-2 border-b border-[#E6E9E5]">
+                                    <div>Giờ</div>
+                                    <div>Mạch</div>
+                                    <div>Huyết áp</div>
+                                    <div>Nhiệt độ</div>
+                                    <div>SpO₂</div>
+                                    <div>Nhịp thở</div>
                                   </div>
-                                );
-                              })}
-                            </div>
+
+                                  {/* Table Rows */}
+                                  <div className="divide-y divide-[#EEF0ED]">
+                                    {records.map((r, rIdx) => {
+                                      const details = getVitals(r);
+                                      return (
+                                        <div key={rIdx} className="text-xs">
+                                          <div className="grid grid-cols-6 px-3 py-2 font-medium">
+                                            <div className="font-bold text-[#17201D]">{hm(r.at)}</div>
+                                            {details.map((vd, vIdx) => (
+                                              <div
+                                                key={vIdx}
+                                                className={
+                                                  vd.bad
+                                                    ? 'font-bold text-[#7E3204] bg-[#FDF0E5] px-1 rounded-xs inline-block'
+                                                    : 'text-[#2B3531]'
+                                                }
+                                              >
+                                                {vd.raw}
+                                              </div>
+                                            ))}
+                                          </div>
+
+                                          {/* Note if present */}
+                                          {r.note && (
+                                            <div className="px-3 pb-2 pt-0.5 text-xs text-[#2B3531] flex items-start gap-1.5">
+                                              <span
+                                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold shrink-0 ${
+                                                  r.isAdmit
+                                                    ? 'bg-blue-100 text-blue-800'
+                                                    : r.abn
+                                                    ? 'bg-amber-100 text-amber-900'
+                                                    : 'bg-gray-100 text-gray-700'
+                                                }`}
+                                              >
+                                                {r.isAdmit ? 'Nhập viện' : r.abn ? 'Bất thường' : 'Ghi chú'}
+                                              </span>
+                                              <span className="flex-1">{r.note}</span>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* View full horizontal timeline across all dates */}
+                                {fullTimeline.length > 0 && (
+                                  <div className="pt-1">
+                                    <details className="group">
+                                      <summary className="text-xs font-semibold text-[#0E6B5E] cursor-pointer hover:underline inline-flex items-center gap-1 select-none">
+                                        <span>Xem toàn bộ dòng thời gian trượt ngang ({fullTimeline.length} lần ghi nhận)</span>
+                                      </summary>
+                                      <div className="pt-2">
+                                        <VitalsTimelineTable
+                                          items={fullTimeline}
+                                          patient={p}
+                                          onAddVitals={() => onOpenRecordModal(p)}
+                                          onAddTreatment={onAddTreatment}
+                                        />
+                                      </div>
+                                    </details>
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="space-y-2">
+                                <div className="text-xs text-[#8A948F] italic py-1">
+                                  Chưa ghi nhận DHST trong ngày {dm(dStart)}.
+                                </div>
+                                {fullTimeline.length > 0 && (
+                                  <div className="pt-1">
+                                    <p className="text-xs font-bold text-[#0F2F2A] mb-1.5">
+                                      Lịch sử các ngày trước ({fullTimeline.length} lần ghi nhận):
+                                    </p>
+                                    <VitalsTimelineTable
+                                      items={fullTimeline}
+                                      patient={p}
+                                      onAddVitals={() => onOpenRecordModal(p)}
+                                      onAddTreatment={onAddTreatment}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>

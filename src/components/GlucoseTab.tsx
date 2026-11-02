@@ -122,13 +122,6 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
     });
   };
 
-  const handleExpandAll = () => {
-    setExpandedIds(new Set(filteredPatients.map((p) => p.id)));
-  };
-
-  const handleCollapseAll = () => {
-    setExpandedIds(new Set());
-  };
 
   const handleOpenAddForPatient = (pid: number, dateStr?: string) => {
     setPreselectedPid(pid);
@@ -226,36 +219,15 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-            <div className="flex items-center gap-1 shrink-0">
-              <button
-                type="button"
-                onClick={handleExpandAll}
-                className="px-2.5 py-1 text-[11px] font-semibold text-[#0E6B5E] hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer border border-emerald-200"
-                title="Mở rộng tất cả lịch sử bệnh nhân"
-              >
-                Mở rộng tất cả
-              </button>
-              <button
-                type="button"
-                onClick={handleCollapseAll}
-                className="px-2.5 py-1 text-[11px] font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer border border-gray-200"
-                title="Thu gọn tất cả"
-              >
-                Thu gọn tất cả
-              </button>
-            </div>
-
-            <label className="inline-flex items-center gap-1.5 cursor-pointer select-none text-[11px] text-gray-600 hover:text-gray-900 shrink-0">
-              <input
-                type="checkbox"
-                checked={showDischarged}
-                onChange={(e) => setShowDischarged(e.target.checked)}
-                className="rounded text-[#0E6B5E] focus:ring-[#0E6B5E]"
-              />
-              <span>Xem cả đã xuất viện</span>
-            </label>
-          </div>
+          <label className="inline-flex items-center gap-1.5 cursor-pointer select-none text-[11px] text-gray-600 hover:text-gray-900 shrink-0">
+            <input
+              type="checkbox"
+              checked={showDischarged}
+              onChange={(e) => setShowDischarged(e.target.checked)}
+              className="rounded text-[#0E6B5E] focus:ring-[#0E6B5E]"
+            />
+            <span>Xem cả đã xuất viện</span>
+          </label>
         </div>
       </div>
 
