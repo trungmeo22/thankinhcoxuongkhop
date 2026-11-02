@@ -262,14 +262,7 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
   return (
     <div className="relative bg-white rounded-2xl border border-[#DDE1DC] shadow-xs overflow-hidden select-none">
       {/* Table Navigation Top Bar */}
-      <div className="p-2.5 bg-[#F9FAF9] border-b border-[#EEF0ED] flex items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-[#0F2F2A] flex items-center gap-1.5">
-            <Calendar className="w-4 h-4 text-[#0E6B5E]" />
-            <span>Lịch sử test</span>
-          </span>
-        </div>
-
+      <div className="p-2 bg-[#F9FAF9] border-b border-[#EEF0ED] flex items-center justify-end gap-2 text-xs">
         {/* Scroll Control Buttons */}
         <div className="flex items-center gap-1">
           <button
@@ -477,7 +470,7 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
                       <span className="text-[10px] text-gray-500 truncate max-w-[70px]" title={t.note}>
                         {t.note || '—'}
                       </span>
-                      <div className="flex items-center gap-0.5">
+                      <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={(e) => {
@@ -485,10 +478,10 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
                             e.stopPropagation();
                             onEditRecord(t);
                           }}
-                          className="p-1 rounded hover:bg-gray-100 text-gray-500 hover:text-emerald-700 cursor-pointer active:scale-90 transition-transform"
+                          className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] sm:min-w-[28px] sm:min-h-[28px] rounded-lg flex items-center justify-center bg-gray-50 sm:bg-transparent hover:bg-gray-100 text-gray-600 hover:text-emerald-700 active:scale-95 transition-transform"
                           title="Sửa lần test này"
                         >
-                          <Edit2 className="w-3 h-3" />
+                          <Edit2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                         </button>
                         <button
                           type="button"
@@ -499,10 +492,10 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
                               onDeleteRecord(t.id);
                             }
                           }}
-                          className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 cursor-pointer active:scale-90 transition-transform"
+                          className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] sm:min-w-[28px] sm:min-h-[28px] rounded-lg flex items-center justify-center bg-red-50/60 sm:bg-transparent hover:bg-red-100 text-red-500 hover:text-red-700 active:scale-95 transition-transform"
                           title="Xóa lần test này"
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                         </button>
                       </div>
                     </div>

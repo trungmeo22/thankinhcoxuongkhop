@@ -13,6 +13,7 @@ import {
   fromIso
 } from '../lib/constants';
 import { GlucoseRecordModal } from './modals/GlucoseRecordModal';
+import { RecordVitalsModal } from './modals/RecordVitalsModal';
 import { GlucoseTimelineTable } from './GlucoseTimelineTable';
 import { VitalsTimelineTable } from './VitalsTimelineTable';
 import {
@@ -36,6 +37,7 @@ import {
 
 interface PatientDetailViewProps {
   patient: Patient;
+  patients?: Patient[];
   recs: VitalRecord[];
   glucoseRecords: GlucoseRecord[];
   insulins?: string[];
@@ -43,6 +45,8 @@ interface PatientDetailViewProps {
   onEditPatient: (p: Patient) => void;
   onOpenRecordVitals: (p: Patient) => void;
   onAddTreatment: (recordId: number, text: string) => void;
+  onSaveVitalRecord?: (record: VitalRecord, updatedPatientVitals: Partial<Patient>) => void;
+  onDeleteVitalRecord?: (id: number) => void;
   onSaveGlucoseRecord: (record: GlucoseRecord) => void;
   onDeleteGlucoseRecord: (id: number) => void;
   onOpenOrder: (p: Patient) => void;
@@ -52,6 +56,7 @@ interface PatientDetailViewProps {
 
 export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
   patient,
+  patients,
   recs,
   glucoseRecords,
   insulins,
@@ -59,6 +64,8 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
   onEditPatient,
   onOpenRecordVitals,
   onAddTreatment,
+  onSaveVitalRecord,
+  onDeleteVitalRecord,
   onSaveGlucoseRecord,
   onDeleteGlucoseRecord,
   onOpenOrder,
@@ -67,9 +74,37 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
 }) => {
   const [activeTab, setActiveTab] = useState<'vitals' | 'glucose'>('vitals');
 
+  // Vitals modal state
+  const [vitalsModalOpen, setVitalsModalOpen] = useState(false);
+  const [editingVitalRecord, setEditingVitalRecord] = useState<VitalRecord | null>(null);
+
   // Glucose modal state
   const [glucoseModalOpen, setGlucoseModalOpen] = useState(false);
   const [editingGlucoseRecord, setEditingGlucoseRecord] = useState<GlucoseRecord | null>(null);
+
+  const handleOpenAddVitals = () => {
+    if (onSaveVitalRecord) {
+      setEditingVitalRecord(null);
+      setVitalsModalOpen(true);
+    } else {
+      onOpenRecordVitals(patient);
+    }
+  };
+
+  const handleEditVitals = (item: any) => {
+    if (item.isAdmit) return;
+    const rec = recs.find((r) => r.id === item.id);
+    if (rec && onSaveVitalRecord) {
+      setEditingVitalRecord(rec);
+      setVitalsModalOpen(true);
+    }
+  };
+
+  const handleDeleteVitals = (id: number) => {
+    if (onDeleteVitalRecord) {
+      onDeleteVitalRecord(id);
+    }
+  };
 
   const now = Date.now();
   const daysInHospital = Math.max(1, Math.round(((patient.outAt || now) - patient.admitAt) / DAY));
@@ -243,27 +278,26 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
       {/* TAB 1: THẺ XEM DHST / DIỄN BIẾN */}
       {activeTab === 'vitals' && (
         <div className="space-y-4 animate-in fade-in duration-150">
-          <div className="flex items-center justify-between bg-white p-3.5 rounded-2xl border border-[#DDE1DC] shadow-xs">
-            <div>
-              <h3 className="text-sm font-bold text-[#0F2F2A]">Lịch sử theo dõi DHST & Diễn biến</h3>
-            </div>
-            {isIn(patient) && (
+          {isIn(patient) && (
+            <div className="flex items-center justify-end">
               <button
                 type="button"
-                onClick={() => onOpenRecordVitals(patient)}
+                onClick={handleOpenAddVitals}
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold transition-colors shadow-xs cursor-pointer active:scale-95"
               >
                 <Plus className="w-4 h-4" />
                 <span>Ghi DHST / Diễn biến</span>
               </button>
-            )}
-          </div>
+            </div>
+          )}
 
           <VitalsTimelineTable
             items={vitalsTimeline}
             patient={patient}
-            onAddVitals={isIn(patient) ? () => onOpenRecordVitals(patient) : undefined}
+            onAddVitals={isIn(patient) ? handleOpenAddVitals : undefined}
             onAddTreatment={onAddTreatment}
+            onEditVitals={handleEditVitals}
+            onDeleteVitals={handleDeleteVitals}
           />
         </div>
       )}
@@ -272,14 +306,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
       {activeTab === 'glucose' && (
         <div className="space-y-4 animate-in fade-in duration-150">
           {/* Action Header */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-[#DDE1DC] shadow-xs">
-            <div>
-              <h3 className="text-sm font-bold text-[#0F2F2A] flex items-center gap-2">
-                <Syringe className="w-4 h-4 text-emerald-700" />
-                <span>Đường huyết & Tiêm Insulin</span>
-              </h3>
-            </div>
-
+          <div className="flex items-center justify-end">
             <button
               type="button"
               onClick={() => {
@@ -326,6 +353,24 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
             onSaveGlucoseRecord(rec);
             setGlucoseModalOpen(false);
             setEditingGlucoseRecord(null);
+          }}
+        />
+      )}
+
+      {/* Vitals Record Modal */}
+      {vitalsModalOpen && onSaveVitalRecord && (
+        <RecordVitalsModal
+          initialPatient={patient}
+          initialRecord={editingVitalRecord}
+          patients={patients || [patient]}
+          onClose={() => {
+            setVitalsModalOpen(false);
+            setEditingVitalRecord(null);
+          }}
+          onSave={(record, updatedVitals) => {
+            onSaveVitalRecord(record, updatedVitals);
+            setVitalsModalOpen(false);
+            setEditingVitalRecord(null);
           }}
         />
       )}

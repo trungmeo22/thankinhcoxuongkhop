@@ -26,6 +26,8 @@ interface PatientsTabProps {
   onOpenOrder: (p: Patient) => void;
   onOpenDischarge: (p: Patient) => void;
   onAddTreatment: (recordId: number, text: string) => void;
+  onSaveVitalRecord?: (record: VitalRecord, updatedVitals: Partial<Patient>) => void;
+  onDeleteVitalRecord?: (id: number) => void;
   onSaveGlucoseRecord: (record: GlucoseRecord) => void;
   onDeleteGlucoseRecord: (id: number) => void;
   initialShowDischarged?: boolean;
@@ -48,6 +50,8 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
   onOpenOrder,
   onOpenDischarge,
   onAddTreatment,
+  onSaveVitalRecord,
+  onDeleteVitalRecord,
   onSaveGlucoseRecord,
   onDeleteGlucoseRecord,
   initialShowDischarged = false,
@@ -76,12 +80,15 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
     return (
       <PatientDetailView
         patient={selectedPatient}
+        patients={patients}
         recs={recs}
         glucoseRecords={glucoseRecords}
         insulins={insulins}
         onBack={() => setSelectedPatientId(null)}
         onEditPatient={onEditPatient}
         onOpenRecordVitals={onOpenRecordVitals || onOpenVitals}
+        onSaveVitalRecord={onSaveVitalRecord}
+        onDeleteVitalRecord={onDeleteVitalRecord}
         onAddTreatment={onAddTreatment}
         onSaveGlucoseRecord={onSaveGlucoseRecord}
         onDeleteGlucoseRecord={onDeleteGlucoseRecord}
@@ -386,15 +393,6 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
           className="flex flex-wrap items-center gap-1.5 shrink-0"
           onClick={(e) => e.stopPropagation()}
         >
-          <button
-            type="button"
-            onClick={() => onEditPatient(p)}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold transition-colors cursor-pointer"
-            title="Sửa thông tin bệnh nhân"
-          >
-            <Edit2 className="w-3.5 h-3.5" />
-            <span>Sửa</span>
-          </button>
           <button
             type="button"
             onClick={() => (onOpenRecordVitals ? onOpenRecordVitals(p) : onOpenVitals(p))}

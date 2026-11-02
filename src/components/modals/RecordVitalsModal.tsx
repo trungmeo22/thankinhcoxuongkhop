@@ -6,6 +6,7 @@ import { ExpandableTreatmentInput } from '../ExpandableTreatmentInput';
 
 interface RecordVitalsModalProps {
   initialPatient?: Patient | null;
+  initialRecord?: VitalRecord | null;
   patients: Patient[];
   onClose: () => void;
   onSave: (record: VitalRecord, updatedPatientVitals: Partial<Patient>) => void;
@@ -13,21 +14,26 @@ interface RecordVitalsModalProps {
 
 export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
   initialPatient,
+  initialRecord,
   patients,
   onClose,
   onSave,
 }) => {
-  const [selectedPid, setSelectedPid] = useState<number | null>(initialPatient?.id || null);
+  const [selectedPid, setSelectedPid] = useState<number | null>(
+    initialRecord?.pid || initialPatient?.id || null
+  );
   const [searchQuery, setSearchQuery] = useState('');
-  const [pulse, setPulse] = useState('');
-  const [bp, setBp] = useState('');
-  const [temp, setTemp] = useState('');
-  const [spo2, setSpo2] = useState('');
-  const [rr, setRr] = useState('');
-  const [note, setNote] = useState('');
-  const [abn, setAbn] = useState(false);
-  const [abnTouched, setAbnTouched] = useState(false);
-  const [txText, setTxText] = useState('');
+  const [pulse, setPulse] = useState(initialRecord?.pulse || '');
+  const [bp, setBp] = useState(initialRecord?.bp || '');
+  const [temp, setTemp] = useState(initialRecord?.temp || '');
+  const [spo2, setSpo2] = useState(initialRecord?.spo2 || '');
+  const [rr, setRr] = useState(initialRecord?.rr || '');
+  const [note, setNote] = useState(initialRecord?.note || '');
+  const [abn, setAbn] = useState(initialRecord?.abn || false);
+  const [abnTouched, setAbnTouched] = useState(!!initialRecord);
+  const [txText, setTxText] = useState(
+    initialRecord?.tx?.map((t) => t.text).join('\n') || ''
+  );
   const [err, setErr] = useState('');
 
   const now = Date.now();
@@ -62,11 +68,28 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
     }
 
     setErr('');
-    const recordId = uid();
+    const recordId = initialRecord ? initialRecord.id : uid();
+    const recordAt = initialRecord ? initialRecord.at : now;
+
+    let txItems = initialRecord?.tx || [];
+    if (txText.trim()) {
+      txItems = txText
+        .trim()
+        .split('\n')
+        .filter(Boolean)
+        .map((line, idx) => ({
+          id: (initialRecord?.tx && initialRecord.tx[idx]?.id) || (recordId + 1 + idx),
+          at: (initialRecord?.tx && initialRecord.tx[idx]?.at) || recordAt,
+          text: line.trim()
+        }));
+    } else {
+      txItems = [];
+    }
+
     const newRecord: VitalRecord = {
       id: recordId,
       pid: selectedPid,
-      at: now,
+      at: recordAt,
       pulse: pulse.trim(),
       bp: bp.trim(),
       temp: temp.trim(),
@@ -74,9 +97,7 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
       rr: rr.trim(),
       note: note.trim(),
       abn,
-      tx: txText.trim()
-        ? [{ id: recordId + 1, at: now, text: txText.trim() }]
-        : []
+      tx: txItems
     };
 
     onSave(newRecord, vitalsObj);
@@ -93,11 +114,11 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-bold text-[#0F2F2A] leading-tight">
-                Ghi DHST & Diễn biến
+                {initialRecord ? 'Sửa DHST & Diễn biến' : 'Ghi DHST & Diễn biến'}
               </h2>
               {selectedPatient && (
                 <p className="text-[11px] sm:text-xs text-[#56615C]">
-                  <span className="font-bold text-[#0E6B5E]">P.${selectedPatient.room}</span> · {selectedPatient.name} ({ageText(selectedPatient)})
+                  <span className="font-bold text-[#0E6B5E]">P.{selectedPatient.room}</span> · {selectedPatient.name} ({ageText(selectedPatient)})
                 </p>
               )}
             </div>
@@ -120,7 +141,11 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
             <div className="flex items-center gap-2 p-2 rounded-xl bg-emerald-50 text-[#0B4F45] text-xs font-medium border border-emerald-100">
               <Clock className="w-4 h-4 shrink-0 text-[#0E6B5E]" />
               <span>
-                Thời điểm ghi: <strong>{hm(now)} · {dmy(now)}</strong>
+                Thời điểm ghi:{' '}
+                <strong>
+                  {hm(initialRecord ? initialRecord.at : now)} ·{' '}
+                  {dmy(initialRecord ? initialRecord.at : now)}
+                </strong>
               </span>
             </div>
 

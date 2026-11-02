@@ -12,7 +12,9 @@ import {
   Plus,
   Calendar,
   Syringe,
-  X
+  X,
+  Edit2,
+  Trash2
 } from 'lucide-react';
 import { ExpandableTreatmentInput } from './ExpandableTreatmentInput';
 
@@ -36,6 +38,8 @@ interface VitalsTimelineTableProps {
   patient: Patient;
   onAddVitals?: () => void;
   onAddTreatment?: (recordId: number, text: string) => void;
+  onEditVitals?: (record: VitalsTimelineItem) => void;
+  onDeleteVitals?: (id: number) => void;
 }
 
 interface DateGroup {
@@ -52,6 +56,8 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
   patient,
   onAddVitals,
   onAddTreatment,
+  onEditVitals,
+  onDeleteVitals,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -325,16 +331,7 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
   return (
     <div className="relative bg-white rounded-2xl border border-[#DDE1DC] shadow-xs overflow-hidden select-none">
       {/* Table Navigation Top Bar */}
-      <div className="p-2.5 bg-[#F9FAF9] border-b border-[#EEF0ED] flex items-center justify-between gap-2 text-xs">
-        <div className="flex items-center gap-2">
-          <span className="font-bold text-[#0F2F2A] flex items-center gap-1.5">
-            <Calendar className="w-4 h-4 text-[#0E6B5E]" />
-            <span>
-              Lịch sử DHST & Diễn biến
-            </span>
-          </span>
-        </div>
-
+      <div className="p-2 bg-[#F9FAF9] border-b border-[#EEF0ED] flex items-center justify-end gap-2 text-xs">
         {/* Scroll Control Buttons */}
         <div className="flex items-center gap-1">
           <button
@@ -711,6 +708,60 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
                         </button>
                       )}
                     </div>
+                  </td>
+                ))}
+              </tr>
+
+              {/* Row 9: Thao tác (Sửa & Xóa) */}
+              <tr>
+                <td className="sticky left-0 z-20 p-2 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-28 sm:w-36 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                  Thao tác
+                </td>
+                {sortedItems.map((r, idx) => (
+                  <td
+                    key={r.id ? r.id : `admit-${idx}`}
+                    className="p-2 text-center border-r border-[#EEF0ED] last:border-r-0"
+                  >
+                    {!r.isAdmit ? (
+                      <div className="flex items-center justify-center gap-1.5">
+                        {onEditVitals && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              if (hasDragged.current) return;
+                              e.stopPropagation();
+                              onEditVitals(r);
+                            }}
+                            className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] sm:min-w-[28px] sm:min-h-[28px] rounded-lg flex items-center justify-center bg-gray-50 sm:bg-transparent hover:bg-gray-100 text-gray-600 hover:text-emerald-700 active:scale-95 transition-transform"
+                            title="Sửa lần đo này"
+                          >
+                            <Edit2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                          </button>
+                        )}
+                        {onDeleteVitals && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              if (hasDragged.current) return;
+                              e.stopPropagation();
+                              if (
+                                window.confirm(
+                                  `Xóa lần đo DHST lúc ${hm(r.at)} ngày ${dmy(r.at)} của ${patient.name}?`
+                                )
+                              ) {
+                                onDeleteVitals(r.id);
+                              }
+                            }}
+                            className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] sm:min-w-[28px] sm:min-h-[28px] rounded-lg flex items-center justify-center bg-red-50/60 sm:bg-transparent hover:bg-red-100 text-red-500 hover:text-red-700 active:scale-95 transition-transform"
+                            title="Xóa lần đo này"
+                          >
+                            <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-[10px] text-gray-400 italic">Vào viện</span>
+                    )}
                   </td>
                 ))}
               </tr>

@@ -408,7 +408,10 @@ export default function App() {
 
   const handleSaveVitalRecord = async (record: VitalRecord, updatedVitals: Partial<Patient>) => {
     setSyncStatus('saving');
-    const nextRecs = [record, ...recs];
+    const exists = recs.some((r) => r.id === record.id);
+    const nextRecs = exists
+      ? recs.map((r) => (r.id === record.id ? record : r))
+      : [record, ...recs];
     setRecs(nextRecs);
 
     const nextPts = patients.map((p) => {
@@ -433,6 +436,19 @@ export default function App() {
     setSyncStatus('ok');
     setVitalsModalOpen(false);
     setVitalsTargetPatient(null);
+  };
+
+  const handleDeleteVitalRecord = async (id: number) => {
+    setSyncStatus('saving');
+    const nextRecs = recs.filter((r) => r.id !== id);
+    setRecs(nextRecs);
+
+    if (currentUser) {
+      await deleteRecFromFirestore(id);
+    } else {
+      saveLocalData({ patients, recs: nextRecs, scheds, reports, beds });
+    }
+    setSyncStatus('ok');
   };
 
   const handleAddTreatment = async (recordId: number, text: string) => {
@@ -723,6 +739,8 @@ export default function App() {
               setDischargeModalOpen(true);
             }}
             onAddTreatment={handleAddTreatment}
+            onSaveVitalRecord={handleSaveVitalRecord}
+            onDeleteVitalRecord={handleDeleteVitalRecord}
             onSaveGlucoseRecord={handleSaveGlucoseRecord}
             onDeleteGlucoseRecord={handleDeleteGlucoseRecord}
             insulins={insulins}
