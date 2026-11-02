@@ -106,7 +106,7 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
   // Filter patients
   const match = (p: Patient) => {
     if (!qClean) return true;
-    return fold(`${p.name} ${p.room}`).includes(qClean);
+    return fold(`${p.name} ${p.room} ${p.doctor || ''}`).includes(qClean);
   };
 
   const activePatients = patients.filter((p) => isIn(p, now)).filter(match);
@@ -384,8 +384,13 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
             </span>
             <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#0E6B5E] transition-colors" />
           </div>
-          <div className="text-[11px] text-[#56615C]">
-            {ageText(p)} · vào {hm(p.admitAt)} · {dm(p.admitAt)}
+          <div className="text-[11px] text-[#56615C] flex flex-wrap items-center gap-1.5 mt-0.5">
+            <span>{ageText(p)} · vào {hm(p.admitAt)} · {dm(p.admitAt)}</span>
+            {p.doctor && (
+              <span className="font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                BS: {p.doctor}
+              </span>
+            )}
           </div>
           {p.note && (
             <div className="text-xs text-[#3A4540] truncate max-w-md mt-0.5">

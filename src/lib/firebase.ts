@@ -196,7 +196,7 @@ export async function deleteReportFromFirestore(id: number) {
   }
 }
 
-export async function saveSettingsToFirestore(settings: { beds: number; rooms?: string[]; insulins?: string[] }) {
+export async function saveSettingsToFirestore(settings: { beds: number; rooms?: string[]; insulins?: string[]; doctors?: string[] }) {
   const path = 'settings/1';
   try {
     await setDoc(doc(db, 'settings', '1'), cleanForFirestore(settings), { merge: true });

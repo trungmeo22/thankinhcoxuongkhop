@@ -1,21 +1,23 @@
 import React, { useState } from 'react';
 import { Patient } from '../../types';
-import { DEFAULT_ROOMS, DEFAULT_INSULINS } from '../../lib/constants';
-import { X, Bed, Plus, RotateCcw, AlertCircle, CheckCircle2, Settings as SettingsIcon, Info, Syringe } from 'lucide-react';
+import { DEFAULT_ROOMS, DEFAULT_INSULINS, DEFAULT_DOCTORS } from '../../lib/constants';
+import { X, Bed, Plus, RotateCcw, AlertCircle, CheckCircle2, Settings as SettingsIcon, Info, Syringe, UserCheck } from 'lucide-react';
 
 interface SettingsModalProps {
   currentBeds: number;
   currentRooms: string[];
   currentInsulins?: string[];
+  currentDoctors?: string[];
   patients: Patient[];
   onClose: () => void;
-  onSave: (beds: number, rooms: string[], insulins?: string[]) => void;
+  onSave: (beds: number, rooms: string[], insulins?: string[], doctors?: string[]) => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
   currentBeds,
   currentRooms,
   currentInsulins,
+  currentDoctors,
   patients,
   onClose,
   onSave,
@@ -27,8 +29,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [insulins, setInsulins] = useState<string[]>(
     currentInsulins && currentInsulins.length ? [...currentInsulins] : [...DEFAULT_INSULINS]
   );
+  const [doctors, setDoctors] = useState<string[]>(
+    currentDoctors && currentDoctors.length ? [...currentDoctors] : [...DEFAULT_DOCTORS]
+  );
   const [newRoom, setNewRoom] = useState('');
   const [newInsulin, setNewInsulin] = useState('');
+  const [newDoctor, setNewDoctor] = useState('');
   const [err, setErr] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -116,6 +122,40 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     setNotice('Đã khôi phục danh mục insulin mặc định.');
   };
 
+  const handleAddDoctor = () => {
+    const target = newDoctor.trim();
+    if (!target) return;
+
+    if (doctors.some((d) => d.trim().toLowerCase() === target.toLowerCase())) {
+      setErr(`Bác sĩ "${target}" đã có trong danh mục.`);
+      setNotice('');
+      return;
+    }
+
+    setErr('');
+    setDoctors([...doctors, target]);
+    setNewDoctor('');
+    setNotice(`Đã thêm bác sĩ "${target}" vào danh mục.`);
+  };
+
+  const handleRemoveDoctor = (docToRemove: string) => {
+    if (doctors.length <= 1) {
+      setErr('Danh mục phải giữ lại ít nhất 1 bác sĩ phụ trách.');
+      setNotice('');
+      return;
+    }
+
+    setDoctors((prev) => prev.filter((d) => d.trim().toLowerCase() !== docToRemove.trim().toLowerCase()));
+    setErr('');
+    setNotice(`Đã xóa "${docToRemove}" khỏi danh mục bác sĩ.`);
+  };
+
+  const handleResetDoctors = () => {
+    setDoctors([...DEFAULT_DOCTORS]);
+    setErr('');
+    setNotice('Đã khôi phục danh mục bác sĩ mặc định.');
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (beds < 1) {
@@ -130,8 +170,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       setErr('Phải có ít nhất 1 loại insulin trong danh mục.');
       return;
     }
+    if (!doctors.length) {
+      setErr('Phải có ít nhất 1 bác sĩ phụ trách trong danh mục.');
+      return;
+    }
     setErr('');
-    onSave(beds, rooms, insulins);
+    onSave(beds, rooms, insulins, doctors);
     onClose();
   };
 
@@ -146,9 +190,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </div>
             <div>
               <h2 className="text-sm sm:text-base font-bold text-[#0F2F2A]">
-                Cài đặt khoa phòng, Giường & Insulin
+                Cài đặt khoa phòng, Giường, Insulin & Bác sĩ
               </h2>
-              <p className="text-xs text-gray-500">Cập nhật công suất giường, danh mục phòng & loại insulin</p>
+              <p className="text-xs text-gray-500">Cập nhật công suất giường, phòng, insulin & bác sĩ phụ trách</p>
             </div>
           </div>
           <button
@@ -362,6 +406,92 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               >
                 <Plus className="w-4 h-4" />
                 Thêm loại
+              </button>
+            </div>
+          </div>
+
+          {/* Doctors management */}
+          <div className="p-3.5 rounded-xl bg-[#F9FAF9] border border-[#E6E9E5] space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <UserCheck className="w-4 h-4 text-[#0E6B5E]" />
+                <div>
+                  <h3 className="font-bold text-sm text-[#0F2F2A]">
+                    Danh mục Bác sĩ phụ trách ({doctors.length})
+                  </h3>
+                  <p className="text-[11px] text-[#56615C]">
+                    Danh sách bác sĩ hiển thị trong menu chọn khi khai báo hoặc chỉnh sửa bệnh nhân
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleResetDoctors}
+                className="text-[11px] text-gray-500 hover:text-[#0E6B5E] font-medium flex items-center gap-1 cursor-pointer hover:underline px-2 py-1 rounded hover:bg-gray-100"
+                title="Khôi phục lại danh sách bác sĩ mặc định"
+              >
+                <RotateCcw className="w-3 h-3" />
+                Mặc định
+              </button>
+            </div>
+
+            {/* Doctor chips */}
+            <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1.5 bg-white rounded-xl border border-[#E6E9E5]">
+              {doctors.length === 0 ? (
+                <p className="text-gray-400 italic text-center w-full py-2">Chưa có bác sĩ nào. Vui lòng thêm ít nhất 1 bác sĩ.</p>
+              ) : (
+                doctors.map((doc) => (
+                  <div
+                    key={doc}
+                    className="inline-flex items-center gap-1.5 pl-2.5 pr-1.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold text-emerald-900 transition-colors group"
+                  >
+                    <span>{doc}</span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleRemoveDoctor(doc);
+                      }}
+                      className="w-5 h-5 flex items-center justify-center rounded-md text-emerald-600 hover:text-white hover:bg-red-500 transition-all cursor-pointer ml-0.5 active:scale-90"
+                      title={`Xóa bác sĩ ${doc}`}
+                      aria-label={`Xóa bác sĩ ${doc}`}
+                    >
+                      <X className="w-3.5 h-3.5 stroke-[2.5]" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Add doctor input */}
+            <div className="flex items-center gap-2 pt-2 border-t border-[#EEF0ED]">
+              <input
+                type="text"
+                placeholder="Nhập tên bác sĩ mới (VD: BS. Nguyễn Văn An...)"
+                value={newDoctor}
+                onChange={(e) => {
+                  setNewDoctor(e.target.value);
+                  setErr('');
+                  setNotice('');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddDoctor();
+                  }
+                }}
+                className="flex-1 px-3 py-1.5 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-white font-medium"
+              />
+              <button
+                type="button"
+                onClick={() => handleAddDoctor()}
+                disabled={!newDoctor.trim()}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white font-semibold text-xs transition-colors disabled:opacity-50 cursor-pointer active:scale-95"
+              >
+                <Plus className="w-4 h-4" />
+                Thêm bác sĩ
               </button>
             </div>
           </div>

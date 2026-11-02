@@ -14,6 +14,7 @@ export interface Patient extends VitalSignValues {
   name: string;
   age: string;
   room: string;
+  doctor?: string;
   note: string;
   admitAt: number;
   status: 'in' | 'out';

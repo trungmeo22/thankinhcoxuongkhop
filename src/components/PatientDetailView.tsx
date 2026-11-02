@@ -175,8 +175,13 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-xs text-[#56615C]">
-              {ageText(patient)} · Vào viện: {hm(patient.admitAt)} {dmy(patient.admitAt)} ({daysInHospital} ngày)
+            <p className="text-xs text-[#56615C] flex flex-wrap items-center gap-1.5">
+              <span>{ageText(patient)} · Vào viện: {hm(patient.admitAt)} {dmy(patient.admitAt)} ({daysInHospital} ngày)</span>
+              {patient.doctor && (
+                <span className="font-semibold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  Bác sĩ: {patient.doctor}
+                </span>
+              )}
             </p>
             {patient.note && (
               <p className="text-xs text-[#1F4E45] bg-[#E9F6F1] px-2.5 py-1 rounded-lg border border-[#C5E6DC] mt-1 max-w-xl">

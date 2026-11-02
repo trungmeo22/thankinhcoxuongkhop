@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Patient, VitalRecord, ScheduleItem, DutyReport, AppConfig, GlucoseRecord } from '../types';
-import { DEFAULT_INSULINS } from './constants';
+import { DEFAULT_INSULINS, DEFAULT_DOCTORS } from './constants';
 
 declare global {
   interface Window {
@@ -86,6 +86,7 @@ export interface AppStateData {
   beds: number;
   rooms?: string[];
   insulins?: string[];
+  doctors?: string[];
 }
 
 const LOCAL_STORAGE_KEY = 'cxk_local_database_v2';
@@ -143,6 +144,10 @@ export function getInitialLocalData(): AppStateData {
           ? parsed.insulins
           : [...DEFAULT_INSULINS];
 
+        const cleanDoctors = Array.isArray(parsed.doctors) && parsed.doctors.length > 0
+          ? parsed.doctors
+          : [...DEFAULT_DOCTORS];
+
         return {
           patients: cleanPatients,
           recs: cleanRecs,
@@ -152,6 +157,7 @@ export function getInitialLocalData(): AppStateData {
           beds: parsed.beds || 30,
           rooms: parsed.rooms,
           insulins: cleanInsulins,
+          doctors: cleanDoctors,
         };
       }
     }
@@ -168,6 +174,7 @@ export function getInitialLocalData(): AppStateData {
     beds: 30,
     rooms: ['P.301', 'P.302', 'P.303', 'P.304', 'P.305', 'P.306'],
     insulins: [...DEFAULT_INSULINS],
+    doctors: [...DEFAULT_DOCTORS],
   };
   saveLocalData(data);
   return data;

@@ -1,25 +1,29 @@
 import React, { useState } from 'react';
 import { Patient } from '../../types';
-import { dtLocal, hm, dmy, DEFAULT_ROOMS } from '../../lib/constants';
+import { dtLocal, hm, dmy, DEFAULT_ROOMS, DEFAULT_DOCTORS } from '../../lib/constants';
 import { X, Clock, AlertCircle } from 'lucide-react';
 
 interface AdmitModalProps {
   patient?: Patient | null;
   rooms?: string[];
+  doctors?: string[];
   onClose: () => void;
   onSave: (patientData: Partial<Patient>) => void;
 }
 
-export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT_ROOMS, onClose, onSave }) => {
+export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT_ROOMS, doctors = DEFAULT_DOCTORS, onClose, onSave }) => {
   const isEdit = Boolean(patient);
   const now = Date.now();
 
   const availableRooms = Array.from(new Set([...(rooms || DEFAULT_ROOMS), patient?.room].filter(Boolean))) as string[];
   const defaultRoom = patient?.room || availableRooms[0] || 'P.301';
 
+  const availableDoctors = Array.from(new Set([...(doctors || DEFAULT_DOCTORS), patient?.doctor].filter(Boolean))) as string[];
+
   const [name, setName] = useState(patient?.name || '');
   const [age, setAge] = useState(patient?.age || '');
   const [room, setRoom] = useState(defaultRoom);
+  const [doctor, setDoctor] = useState(patient?.doctor || '');
   const [admitTime, setAdmitTime] = useState(patient?.admitAt ? dtLocal(patient.admitAt) : dtLocal(now));
   const [pulse, setPulse] = useState(patient?.pulse || patient?.av?.pulse || '');
   const [bp, setBp] = useState(patient?.bp || patient?.av?.bp || '');
@@ -51,6 +55,7 @@ export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT
       name: name.trim(),
       age: age.trim(),
       room: room.trim(),
+      doctor: doctor.trim(),
       admitAt: at,
       pulse: pulse.trim(),
       bp: bp.trim(),
@@ -124,8 +129,8 @@ export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT
               />
             </div>
 
-            {/* Age & Room Dropdown - Single select dropdown, NO room list chips */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Age, Room & Attending Doctor Dropdowns */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label className="block font-semibold text-[#3A4540] mb-1">Tuổi</label>
                 <input
@@ -147,6 +152,21 @@ export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT
                   {availableRooms.map((rm) => (
                     <option key={rm} value={rm}>
                       Phòng {rm}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block font-semibold text-[#3A4540] mb-1">Bác sĩ phụ trách</label>
+                <select
+                  value={doctor}
+                  onChange={(e) => setDoctor(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-[#C3CAC4] text-xs font-semibold text-[#0F2F2A] bg-white focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none cursor-pointer"
+                >
+                  <option value="">-- Chọn bác sĩ --</option>
+                  {availableDoctors.map((doc) => (
+                    <option key={doc} value={doc}>
+                      {doc}
                     </option>
                   ))}
                 </select>

@@ -53,7 +53,7 @@ import { LoginModal } from './components/modals/LoginModal';
 import { SettingsModal } from './components/modals/SettingsModal';
 
 import { Plus } from 'lucide-react';
-import { DEFAULT_ROOMS, DEFAULT_INSULINS } from './lib/constants';
+import { DEFAULT_ROOMS, DEFAULT_INSULINS, DEFAULT_DOCTORS } from './lib/constants';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -90,6 +90,7 @@ export default function App() {
   const [beds, setBeds] = useState<number>(30);
   const [rooms, setRooms] = useState<string[]>(DEFAULT_ROOMS);
   const [insulins, setInsulins] = useState<string[]>(DEFAULT_INSULINS);
+  const [doctors, setDoctors] = useState<string[]>(DEFAULT_DOCTORS);
   const [syncStatus, setSyncStatus] = useState<'ok' | 'saving' | 'err'>('ok');
 
   // Modals state
@@ -156,6 +157,9 @@ export default function App() {
     }
     if (local.insulins && local.insulins.length > 0) {
       setInsulins(local.insulins);
+    }
+    if (local.doctors && local.doctors.length > 0) {
+      setDoctors(local.doctors);
     }
   }, []);
 
@@ -307,10 +311,13 @@ export default function App() {
             if (Array.isArray(data.insulins) && data.insulins.length > 0) {
               setInsulins(data.insulins);
             }
-            saveLocalData({ beds: data.beds, rooms: data.rooms, insulins: data.insulins });
+            if (Array.isArray(data.doctors) && data.doctors.length > 0) {
+              setDoctors(data.doctors);
+            }
+            saveLocalData({ beds: data.beds, rooms: data.rooms, insulins: data.insulins, doctors: data.doctors });
           }
         } else {
-          saveSettingsToFirestore({ beds: 30, rooms: DEFAULT_ROOMS, insulins: DEFAULT_INSULINS });
+          saveSettingsToFirestore({ beds: 30, rooms: DEFAULT_ROOMS, insulins: DEFAULT_INSULINS, doctors: DEFAULT_DOCTORS });
         }
       },
       (err) => {
@@ -593,15 +600,17 @@ export default function App() {
     }
   };
 
-  const handleSaveSettings = async (newBeds: number, newRooms: string[], newInsulins?: string[]) => {
+  const handleSaveSettings = async (newBeds: number, newRooms: string[], newInsulins?: string[], newDoctors?: string[]) => {
     const targetInsulins = newInsulins && newInsulins.length > 0 ? newInsulins : insulins;
+    const targetDoctors = newDoctors && newDoctors.length > 0 ? newDoctors : doctors;
     setBeds(newBeds);
     setRooms(newRooms);
     setInsulins(targetInsulins);
+    setDoctors(targetDoctors);
     if (currentUser) {
-      await saveSettingsToFirestore({ beds: newBeds, rooms: newRooms, insulins: targetInsulins });
+      await saveSettingsToFirestore({ beds: newBeds, rooms: newRooms, insulins: targetInsulins, doctors: targetDoctors });
     } else {
-      saveLocalData({ patients, recs, scheds, reports, glucoseRecords, beds: newBeds, rooms: newRooms, insulins: targetInsulins });
+      saveLocalData({ patients, recs, scheds, reports, glucoseRecords, beds: newBeds, rooms: newRooms, insulins: targetInsulins, doctors: targetDoctors });
     }
     setSettingsModalOpen(false);
   };
@@ -840,6 +849,7 @@ export default function App() {
         <AdmitModal
           patient={editingPatient}
           rooms={rooms}
+          doctors={doctors}
           onClose={() => {
             setAdmitModalOpen(false);
             setEditingPatient(null);
@@ -923,6 +933,7 @@ export default function App() {
           currentBeds={beds}
           currentRooms={rooms}
           currentInsulins={insulins}
+          currentDoctors={doctors}
           patients={patients}
           onClose={() => setSettingsModalOpen(false)}
           onSave={handleSaveSettings}

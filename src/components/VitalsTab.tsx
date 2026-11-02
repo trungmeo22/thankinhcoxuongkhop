@@ -13,9 +13,10 @@ import {
   getVitals,
   hasVit,
   isOut,
-  KIND_LABELS
+  KIND_LABELS,
+  fold,
 } from '../lib/constants';
-import { Plus, HeartPulse, FileSpreadsheet, AlertTriangle, Calendar, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
+import { Plus, HeartPulse, FileSpreadsheet, AlertTriangle, Calendar, ChevronDown, ChevronUp, ArrowLeft, Search, X } from 'lucide-react';
 import { VitalsTimelineTable } from './VitalsTimelineTable';
 
 interface VitalsTabProps {
@@ -36,7 +37,7 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
   onGoBack,
 }) => {
   const [selectedDate, setSelectedDate] = useState(isoDay(Date.now()));
-  const [selectedRoom, setSelectedRoom] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [expandedPids, setExpandedPids] = useState<Set<number>>(new Set());
 
   const toggleExpand = (pid: number) => {
@@ -91,11 +92,16 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
     .filter((p) => relevantPatientIds.has(p.id))
     .sort(byRoom);
 
-  // Extract distinct rooms
-  const rooms = Array.from(new Set(vPatients.map((p) => p.room))).sort();
+  const qClean = fold(searchQuery.trim());
+  const filteredPatients = vPatients.filter((p) => {
+    if (!qClean) return true;
+    return fold(`${p.name} ${p.room} ${p.doctor || ''}`).includes(qClean);
+  });
 
-  // Filtered rooms
-  const displayedRooms = rooms.filter((rm) => selectedRoom === 'all' || selectedRoom === rm);
+  // Extract distinct rooms from filtered patients
+  const displayedRooms = Array.from(new Set(filteredPatients.map((p) => p.room))).sort((a, b) =>
+    a.localeCompare(b, 'vi', { numeric: true })
+  );
 
   // Helper to get day items for patient
   const getPatientDayRecords = (p: Patient) => {
@@ -129,98 +135,102 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Header bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-[#DDE1DC] shadow-xs">
-        <div className="flex items-center gap-2.5">
-          {onGoBack && (
+      {/* Header bar with balanced controls & multi-purpose search bar */}
+      <div className="bg-white p-3.5 md:p-4 rounded-2xl border border-[#DDE1DC] shadow-xs space-y-3">
+        {/* Top row: Title, Date & Primary Action */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            {onGoBack && (
+              <button
+                type="button"
+                onClick={onGoBack}
+                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                title="Quay lại"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Quay lại</span>
+              </button>
+            )}
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-[#0E6B5E] flex items-center justify-center border border-emerald-100 shrink-0">
+                <HeartPulse className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base md:text-lg font-bold text-[#0F2F2A] leading-tight">
+                  DHST / Diễn biến
+                </h2>
+                <p className="text-[11px] text-[#56615C]">{dayTitle}</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Date Picker + Quick Today + Ghi DHST Button */}
+          <div className="flex items-center gap-2 justify-end flex-wrap sm:flex-nowrap">
+            <div className="flex items-center gap-1.5 bg-[#F3F4F1] px-2.5 py-1.5 rounded-xl border border-[#DDE1DC]">
+              <Calendar className="w-3.5 h-3.5 text-[#56615C] shrink-0" />
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-transparent text-xs font-semibold text-[#17201D] focus:outline-none cursor-pointer"
+              />
+            </div>
+
+            {!isToday && (
+              <button
+                type="button"
+                onClick={() => setSelectedDate(isoDay(Date.now()))}
+                className="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-800 transition-colors cursor-pointer"
+              >
+                Hôm nay
+              </button>
+            )}
+
             <button
               type="button"
-              onClick={onGoBack}
-              className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer mr-0.5"
-              title="Quay lại"
+              onClick={() => onOpenRecordModal()}
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer whitespace-nowrap"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Quay lại</span>
+              <Plus className="w-4 h-4" />
+              <span>Ghi DHST</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Multi-purpose search bar */}
+        <div className="relative w-full">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Tìm theo tên bệnh nhân, bác sĩ phụ trách, số phòng..."
+            className="w-full pl-9 pr-8 py-2 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-[#F9FAF9] focus:bg-white transition-colors placeholder:text-gray-400"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+              title="Xóa tìm kiếm"
+            >
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
-          <div>
-            <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">DHST / Diễn biến</h2>
-          </div>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Date Picker */}
-          <div className="flex items-center gap-1.5 bg-[#F3F4F1] px-2.5 py-1 rounded-xl border border-[#DDE1DC]">
-            <Calendar className="w-3.5 h-3.5 text-[#56615C]" />
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="bg-transparent text-xs font-semibold text-[#17201D] focus:outline-none"
-            />
-          </div>
-
-          <button
-            type="button"
-            onClick={() => setSelectedDate(isoDay(Date.now()))}
-            className="px-3 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-800 transition-colors"
-          >
-            Hôm nay
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onOpenRecordModal()}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-semibold shadow-xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Ghi DHST</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Room Filter Chips */}
-      <div className="flex flex-wrap items-center gap-1.5">
-        <button
-          type="button"
-          onClick={() => setSelectedRoom('all')}
-          className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-            selectedRoom === 'all'
-              ? 'bg-[#0E6B5E] text-white shadow-xs'
-              : 'bg-white text-[#3A4540] border border-[#C3CAC4] hover:border-[#0E6B5E]'
-          }`}
-        >
-          Tất cả phòng ({vPatients.length} BN)
-        </button>
-        {rooms.map((rm) => {
-          const count = vPatients.filter((p) => p.room === rm).length;
-          const isSelected = selectedRoom === rm;
-          return (
-            <button
-              key={rm}
-              type="button"
-              onClick={() => setSelectedRoom(rm)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                isSelected
-                  ? 'bg-[#0E6B5E] text-white shadow-xs'
-                  : 'bg-white text-[#3A4540] border border-[#C3CAC4] hover:border-[#0E6B5E]'
-              }`}
-            >
-              {rm} ({count})
-            </button>
-          );
-        })}
       </div>
 
       {/* Rooms Cards */}
-      {!displayedRooms.length ? (
+      {!filteredPatients.length ? (
         <div className="bg-white p-8 rounded-2xl border border-[#DDE1DC] shadow-xs text-center text-xs text-[#56615C]">
-          Không có bệnh nhân trong ngày {dm(dStart)}.
+          {searchQuery.trim()
+            ? `Không tìm thấy bệnh nhân phù hợp với từ khóa "${searchQuery}".`
+            : `Không có bệnh nhân trong ngày ${dm(dStart)}.`}
         </div>
       ) : (
         <div className="space-y-4">
           {displayedRooms.map((rm) => {
-            const roomPatients = vPatients.filter((p) => p.room === rm);
+            const roomPatients = filteredPatients.filter((p) => p.room === rm);
             return (
               <div key={rm} className="bg-white rounded-2xl border border-[#DDE1DC] shadow-xs overflow-hidden">
                 {/* Room Header Banner */}
@@ -241,11 +251,16 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
 
                     return (
                       <div key={p.id} className="p-4 space-y-3">
-                        {/* Top: Name, Age, Action buttons */}
+                        {/* Top: Name, Age, Doctor, Action buttons */}
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <div className="flex items-center gap-2 flex-wrap">
                             <strong className="text-sm text-[#17201D]">{p.name}</strong>
                             <span className="text-xs text-[#56615C]">{ageText(p)}</span>
+                            {p.doctor && (
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 text-[11px] font-semibold border border-emerald-200">
+                                BS: {p.doctor}
+                              </span>
+                            )}
                             {out && (
                               <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-gray-100 text-gray-700">
                                 {KIND_LABELS[p.outKind || 'ra']}

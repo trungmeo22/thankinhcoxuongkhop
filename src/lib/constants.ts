@@ -34,6 +34,14 @@ export const DEFAULT_INSULINS = [
   'Levemir'
 ];
 
+export const DEFAULT_DOCTORS = [
+  'BS. Nguyễn Văn An',
+  'BS. Trần Thị Bình',
+  'BS. Lê Văn Cường',
+  'BS. Phạm Thị Dung',
+  'BS. Hoàng Văn Em'
+];
+
 export const VKEYS: (keyof VitalSignValues)[] = ['pulse', 'bp', 'temp', 'spo2', 'rr'];
 
 export const pad = (n: number) => String(n).padStart(2, '0');
