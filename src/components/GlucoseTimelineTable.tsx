@@ -2,7 +2,6 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { GlucoseRecord } from '../types';
 import { isoDay, DAY, fromIso, dmy } from '../lib/constants';
 import {
-  Clock,
   Syringe,
   Edit2,
   Trash2,
@@ -400,25 +399,7 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
             </thead>
 
             <tbody className="divide-y divide-[#EEF0ED]">
-              {/* Hàng 1: Giờ test */}
-              <tr>
-                <td className="sticky left-0 z-20 p-2 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-28 sm:w-32 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
-                  Giờ test
-                </td>
-                {sortedRecords.map((t) => (
-                  <td
-                    key={t.id}
-                    className="p-2 text-center font-bold text-gray-800 border-r border-[#EEF0ED] last:border-r-0"
-                  >
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 font-mono text-[11px]">
-                      <Clock className="w-3 h-3 text-gray-400" />
-                      <span>{t.time}</span>
-                    </span>
-                  </td>
-                ))}
-              </tr>
-
-              {/* Hàng 2: Kết quả Đường huyết */}
+              {/* Hàng 1: Kết quả Đường huyết */}
               <tr>
                 <td className="sticky left-0 z-20 p-2 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-28 sm:w-32 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
                   Đường huyết

@@ -224,7 +224,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
           }`}
         >
           <HeartPulse className="w-4 h-4" />
-          <span>1. DHST & Diễn biến ({vitalsTimeline.length})</span>
+          <span>DHST/Diễn biến ({vitalsTimeline.length})</span>
         </button>
 
         <button
@@ -237,7 +237,7 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
           }`}
         >
           <Syringe className="w-4 h-4" />
-          <span>2. Đường huyết & Insulin ({patientGlucose.length})</span>
+          <span>Test đường ({patientGlucose.length})</span>
         </button>
       </div>
       {/* TAB 1: THẺ XEM DHST / DIỄN BIẾN */}
