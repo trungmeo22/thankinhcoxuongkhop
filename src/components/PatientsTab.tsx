@@ -11,7 +11,7 @@ import {
   KIND_LABELS,
   fold
 } from '../lib/constants';
-import { Search, Plus, Edit2, HeartPulse, CalendarPlus, LogOut, ArrowLeft, Clock, ChevronRight } from 'lucide-react';
+import { Search, Plus, Edit2, HeartPulse, CalendarPlus, LogOut, ArrowLeft, Clock, ChevronRight, X } from 'lucide-react';
 import { PatientDetailView } from './PatientDetailView';
 
 interface PatientsTabProps {
@@ -131,80 +131,90 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
   return (
     <div className="space-y-4">
       {/* Search & Actions Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-[#DDE1DC] shadow-xs">
-        <div className="flex items-center gap-2.5">
-          {onGoBack && (
+      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-[#DDE1DC] shadow-xs space-y-3 sm:space-y-0 sm:flex sm:items-center sm:justify-between sm:gap-4">
+        {/* Title + Back (and on mobile: + Nhập viện button on top right) */}
+        <div className="flex items-center justify-between sm:justify-start gap-2.5 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            {onGoBack && (
+              <button
+                type="button"
+                onClick={onGoBack}
+                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                title="Quay lại"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Quay lại</span>
+              </button>
+            )}
+            <div>
+              <h2 className="text-sm sm:text-base md:text-lg font-bold text-[#0F2F2A] truncate">
+                {showOut ? (
+                  <span className="flex items-center gap-2">
+                    <span>Danh sách báo ra viện</span>
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                      {dischargedAll.length}
+                    </span>
+                    {pendingDischargeCount > 0 && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-semibold">
+                        {pendingDischargeCount} chờ ra
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  <span>Bệnh nhân đang điều trị · {activePatients.length}</span>
+                )}
+              </h2>
+            </div>
+          </div>
+
+          {/* Mobile: Admit Button on top right */}
+          <div className="sm:hidden shrink-0">
             <button
               type="button"
-              onClick={onGoBack}
-              className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer mr-0.5"
-              title="Quay lại"
+              onClick={onOpenAdmit}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Quay lại</span>
+              <Plus className="w-4 h-4" />
+              <span>Nhập viện</span>
             </button>
-          )}
-          <div>
-            <h2 className="text-base md:text-lg font-bold text-[#0F2F2A]">
-              {showOut ? (
-                <span className="flex items-center gap-2">
-                  <span>Danh sách báo ra viện</span>
-                  <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
-                    {dischargedAll.length}
-                  </span>
-                  {pendingDischargeCount > 0 && (
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-semibold">
-                      {pendingDischargeCount} chờ ra
-                    </span>
-                  )}
-                </span>
-              ) : (
-                <span>Bệnh nhân đang điều trị · {activePatients.length}</span>
-              )}
-            </h2>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Search bar (centered & full-width on mobile) & Desktop Admit Button */}
+        <div className="flex items-center gap-3 sm:flex-1 sm:max-w-md md:max-w-lg sm:justify-end">
           {/* Search box */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <div className="relative w-full">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="search"
               placeholder="Tìm tên hoặc số phòng..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="pl-9 pr-3 py-1.5 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none w-48 md:w-56"
+              className="w-full pl-9 pr-8 py-2 sm:py-1.5 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-[#F9FAF9] focus:bg-white transition-colors"
             />
+            {q && (
+              <button
+                type="button"
+                onClick={() => setQ('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                title="Xóa tìm kiếm"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              if (onSelectTab) {
-                onSelectTab('cu');
-              } else {
-                setShowOut(!showOut);
-              }
-            }}
-            className="px-3 py-1.5 rounded-xl border border-[#0E6B5E] bg-white hover:bg-[#E4F0EC] text-[#0B5C51] text-xs font-semibold transition-colors cursor-pointer"
-          >
-            {onSelectTab
-              ? `Bệnh nhân cũ (${patients.filter((p) => p.status === 'out').length})`
-              : showOut
-              ? '← Bệnh nhân hiện có'
-              : `Danh sách báo ra viện (${patients.filter((p) => p.status === 'out').length})`}
-          </button>
-
-          {/* Admit button */}
-          <button
-            type="button"
-            onClick={onOpenAdmit}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-semibold shadow-xs transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Nhập viện</span>
-          </button>
+          {/* Desktop: Admit button */}
+          <div className="hidden sm:block shrink-0">
+            <button
+              type="button"
+              onClick={onOpenAdmit}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nhập viện</span>
+            </button>
+          </div>
         </div>
       </div>
 
