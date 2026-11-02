@@ -16,7 +16,7 @@ import {
   KIND_LABELS,
   fold,
 } from '../lib/constants';
-import { Plus, HeartPulse, FileSpreadsheet, AlertTriangle, Calendar, ChevronDown, ChevronUp, ArrowLeft, Search, X } from 'lucide-react';
+import { Plus, FileSpreadsheet, AlertTriangle, Calendar, ChevronDown, ChevronUp, ArrowLeft, Search, X } from 'lucide-react';
 import { VitalsTimelineTable } from './VitalsTimelineTable';
 
 interface VitalsTabProps {
@@ -135,11 +135,11 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Header bar with balanced controls & multi-purpose search bar */}
-      <div className="bg-white p-3.5 md:p-4 rounded-2xl border border-[#DDE1DC] shadow-xs space-y-3">
-        {/* Top row: Title, Date & Primary Action */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
+      {/* Search, Filter & Action Bar */}
+      <div className="bg-white p-3 sm:p-4 rounded-2xl border border-[#DDE1DC] shadow-xs">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+          {/* Back button (if present) & Search bar */}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
             {onGoBack && (
               <button
                 type="button"
@@ -151,72 +151,62 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
                 <span className="hidden sm:inline">Quay lại</span>
               </button>
             )}
-            <div className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-[#0E6B5E] flex items-center justify-center border border-emerald-100 shrink-0">
-                <HeartPulse className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-base md:text-lg font-bold text-[#0F2F2A] leading-tight">
-                  DHST / Diễn biến
-                </h2>
-                <p className="text-[11px] text-[#56615C]">{dayTitle}</p>
-              </div>
+            <div className="relative flex-1 min-w-0">
+              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Tìm tên, bác sĩ, phòng..."
+                className="w-full pl-9 pr-8 py-2 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-[#F9FAF9] focus:bg-white transition-colors placeholder:text-gray-400"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                  title="Xóa tìm kiếm"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
 
-          {/* Date Picker + Quick Today + Ghi DHST Button */}
-          <div className="flex items-center gap-2 justify-end flex-wrap sm:flex-nowrap">
-            <div className="flex items-center gap-1.5 bg-[#F3F4F1] px-2.5 py-1.5 rounded-xl border border-[#DDE1DC]">
-              <Calendar className="w-3.5 h-3.5 text-[#56615C] shrink-0" />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-transparent text-xs font-semibold text-[#17201D] focus:outline-none cursor-pointer"
-              />
-            </div>
+          {/* Date Picker, Quick Today & Ghi DHST Button */}
+          <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
+            <div className="flex items-center gap-1.5" title={dayTitle}>
+              <div className="flex items-center gap-1.5 bg-[#F3F4F1] px-2.5 py-1.5 rounded-xl border border-[#DDE1DC]">
+                <Calendar className="w-3.5 h-3.5 text-[#56615C] shrink-0" />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-[#17201D] focus:outline-none cursor-pointer"
+                />
+              </div>
 
-            {!isToday && (
-              <button
-                type="button"
-                onClick={() => setSelectedDate(isoDay(Date.now()))}
-                className="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-800 transition-colors cursor-pointer"
-              >
-                Hôm nay
-              </button>
-            )}
+              {!isToday && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(isoDay(Date.now()))}
+                  className="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-800 transition-colors cursor-pointer"
+                  title="Về hôm nay"
+                >
+                  Hôm nay
+                </button>
+              )}
+            </div>
 
             <button
               type="button"
               onClick={() => onOpenRecordModal()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer shrink-0 whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               <span>Ghi DHST</span>
             </button>
           </div>
-        </div>
-
-        {/* Multi-purpose search bar */}
-        <div className="relative w-full">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo tên bệnh nhân, bác sĩ phụ trách, số phòng..."
-            className="w-full pl-9 pr-8 py-2 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-[#F9FAF9] focus:bg-white transition-colors placeholder:text-gray-400"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
-              title="Xóa tìm kiếm"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
       </div>
 

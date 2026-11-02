@@ -10,6 +10,7 @@ import {
   Calendar,
   Clock,
   Search,
+  X,
   ChevronDown,
   ChevronUp,
   ChevronsUpDown,
@@ -161,32 +162,44 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
 
   return (
     <div className="space-y-4">
-      {/* Top Header & Actions */}
-      <div className="bg-white p-4 rounded-2xl border border-[#DDE1DC] shadow-xs flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2.5">
+      {/* Search, Filter & Action Bar */}
+      <div className="bg-white p-3 sm:p-4 rounded-2xl border border-[#DDE1DC] shadow-xs space-y-2.5">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           {onGoBack && (
             <button
               type="button"
               onClick={onGoBack}
-              className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer mr-0.5"
+              className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer shrink-0"
               title="Quay lại"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Quay lại</span>
             </button>
           )}
-          <div className="w-10 h-10 rounded-xl bg-emerald-100 text-[#0E6B5E] flex items-center justify-center font-bold">
-            <Syringe className="w-5 h-5" />
-          </div>
-          <div>
-            <h2 className="text-base md:text-lg font-bold text-[#0F2F2A] leading-tight">
-              Báo đường huyết
-            </h2>
-          </div>
-        </div>
 
-        {/* Nút Thêm mới toàn khoa */}
-        <div className="flex items-center gap-2">
+          {/* Search Box */}
+          <div className="relative flex-1 min-w-0">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="search"
+              placeholder="Tìm theo tên bệnh nhân, số phòng..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              className="w-full pl-9 pr-8 py-2 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-[#F9FAF9] focus:bg-white transition-colors placeholder:text-gray-400"
+            />
+            {q && (
+              <button
+                type="button"
+                onClick={() => setQ('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                title="Xóa tìm kiếm"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+
+          {/* Nút Thêm mới toàn khoa */}
           <button
             type="button"
             onClick={() => {
@@ -194,71 +207,55 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
               setPreselectedDate(undefined);
               setDeptModalOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer shrink-0 whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
             <span>Thêm kết quả test</span>
           </button>
         </div>
-      </div>
 
-      {/* Control Bar: Search & Filter Tabs */}
-      <div className="bg-white p-3 rounded-2xl border border-[#DDE1DC] shadow-xs space-y-2.5">
-        <div className="flex flex-wrap items-center justify-between gap-2.5">
-          {/* Search Box */}
-          <div className="relative flex-1 min-w-[220px] max-w-md">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="search"
-              placeholder="Tìm theo tên bệnh nhân, số phòng..."
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              className="w-full pl-9 pr-3 py-1.5 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-white font-medium"
-            />
-          </div>
-
-          {/* Expand / Collapse All buttons */}
-          <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-            <button
-              type="button"
-              onClick={handleExpandAll}
-              className="px-2.5 py-1 text-[11px] font-semibold text-[#0E6B5E] hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer border border-emerald-200"
-              title="Mở rộng tất cả lịch sử bệnh nhân"
-            >
-              Mở rộng tất cả
-            </button>
-            <button
-              type="button"
-              onClick={handleCollapseAll}
-              className="px-2.5 py-1 text-[11px] font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer border border-gray-200"
-              title="Thu gọn tất cả"
-            >
-              Thu gọn tất cả
-            </button>
-          </div>
-        </div>
-
-        {/* Subline: Stats & Discharged Toggle */}
+        {/* Subline: Stats, Expand/Collapse & Discharged Toggle */}
         <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#EEF0ED] text-xs text-gray-500">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs">
             <span>
-              Bệnh nhân có kết quả test: <strong className="text-[#0F2F2A]">{filteredPatients.length}</strong>
+              Bệnh nhân test: <strong className="text-[#0F2F2A]">{filteredPatients.length}</strong>
             </span>
             <span>·</span>
             <span>
-              Tổng lượt test toàn khoa: <strong className="text-emerald-800">{totalTestsCount}</strong>
+              Tổng lượt: <strong className="text-emerald-800">{totalTestsCount}</strong>
             </span>
           </div>
 
-          <label className="inline-flex items-center gap-1.5 cursor-pointer select-none text-[11px] text-gray-600 hover:text-gray-900">
-            <input
-              type="checkbox"
-              checked={showDischarged}
-              onChange={(e) => setShowDischarged(e.target.checked)}
-              className="rounded text-[#0E6B5E] focus:ring-[#0E6B5E]"
-            />
-            <span>Xem cả bệnh nhân đã xuất viện</span>
-          </label>
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <div className="flex items-center gap-1 shrink-0">
+              <button
+                type="button"
+                onClick={handleExpandAll}
+                className="px-2.5 py-1 text-[11px] font-semibold text-[#0E6B5E] hover:bg-emerald-50 rounded-lg transition-colors cursor-pointer border border-emerald-200"
+                title="Mở rộng tất cả lịch sử bệnh nhân"
+              >
+                Mở rộng tất cả
+              </button>
+              <button
+                type="button"
+                onClick={handleCollapseAll}
+                className="px-2.5 py-1 text-[11px] font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer border border-gray-200"
+                title="Thu gọn tất cả"
+              >
+                Thu gọn tất cả
+              </button>
+            </div>
+
+            <label className="inline-flex items-center gap-1.5 cursor-pointer select-none text-[11px] text-gray-600 hover:text-gray-900 shrink-0">
+              <input
+                type="checkbox"
+                checked={showDischarged}
+                onChange={(e) => setShowDischarged(e.target.checked)}
+                className="rounded text-[#0E6B5E] focus:ring-[#0E6B5E]"
+              />
+              <span>Xem cả đã xuất viện</span>
+            </label>
+          </div>
         </div>
       </div>
 
