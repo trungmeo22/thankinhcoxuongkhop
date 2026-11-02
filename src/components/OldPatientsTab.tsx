@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Patient, DischargeKind } from '../types';
-import { hm, dmy, ageText, KIND_LABELS, fold } from '../lib/constants';
+import { hm, dmy, ageText, KIND_LABELS, fold, isOut } from '../lib/constants';
 import {
   Search,
   RotateCcw,
@@ -35,9 +35,9 @@ export const OldPatientsTab: React.FC<OldPatientsTabProps> = ({
   const now = Date.now();
   const qClean = fold(q.trim());
 
-  // All discharged / transferred patients (status === 'out')
+  // Only patients whose discharge time has passed (isOut(p, now))
   const allDischarged = patients
-    .filter((p) => p.status === 'out')
+    .filter((p) => isOut(p, now))
     .sort((a, b) => (b.outAt || 0) - (a.outAt || 0));
 
   // Filter by search query and kind

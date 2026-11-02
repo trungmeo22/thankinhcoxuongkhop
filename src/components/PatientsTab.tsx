@@ -114,6 +114,11 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
   const newIds = new Set(newPatients.map((p) => p.id));
   const olderPatients = activePatients.filter((p) => !newIds.has(p.id));
 
+  // Scheduled for discharge list (patients with scheduled discharge in the future)
+  const scheduledDischargePatients = activePatients
+    .filter((p) => p.status === 'out' && p.outAt != null && p.outAt > now)
+    .sort((a, b) => (a.outAt || 0) - (b.outAt || 0));
+
   // Discharged list
   const dischargedAll = patients
     .filter((p) => p.status === 'out' && p.outAt != null)
@@ -199,6 +204,30 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
       {/* View: Inpatients */}
       {!showOut && (
         <div className="space-y-4">
+          {/* Danh sách ra viện */}
+          <div className="bg-white rounded-2xl border border-amber-200/90 shadow-xs overflow-hidden">
+            <div className="p-3.5 bg-amber-50/75 border-b border-amber-200 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 rounded-md bg-amber-200/90 text-amber-900 text-[11px] font-bold">
+                  Báo ra
+                </span>
+                <h3 className="text-xs md:text-sm font-bold text-[#0F2F2A]">
+                  Danh sách ra viện · {scheduledDischargePatients.length}
+                </h3>
+              </div>
+            </div>
+
+            <div className="divide-y divide-amber-100/60">
+              {!scheduledDischargePatients.length ? (
+                <div className="p-4 text-xs text-center text-[#56615C]">
+                  Chưa có bệnh nhân nào lên lịch ra viện.
+                </div>
+              ) : (
+                scheduledDischargePatients.map((p) => renderScheduledDischargeRow(p))
+              )}
+            </div>
+          </div>
+
           {/* Newly admitted */}
           <div className="bg-white rounded-2xl border border-[#DDE1DC] shadow-xs overflow-hidden">
             <div className="p-3.5 bg-[#FDF0E5]/60 border-b border-[#F5D8C4] flex items-center justify-between">
@@ -338,6 +367,84 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
       )}
     </div>
   );
+
+  function renderScheduledDischargeRow(p: Patient) {
+    const kind = p.outKind || 'ra';
+    const kindLabel = KIND_LABELS[kind] || 'Ra viện';
+
+    return (
+      <div
+        key={`discharge-${p.id}`}
+        onClick={() => setSelectedPatientId(p.id)}
+        className="p-3.5 md:p-4 flex flex-wrap items-center justify-between gap-3 hover:bg-amber-50/50 transition-colors cursor-pointer group"
+      >
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {/* Room badge */}
+          <span className="px-2.5 py-1 rounded-lg bg-[#0F2F2A] group-hover:bg-[#0E6B5E] text-white font-bold text-xs shrink-0 transition-colors">
+            {p.room}
+          </span>
+
+          {/* Patient Info */}
+          <div className="flex-1 min-w-[200px]">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="font-bold text-sm text-[#17201D] group-hover:text-[#0E6B5E] transition-colors">
+                {p.name}
+              </span>
+              <span className="text-xs text-[#56615C]">{ageText(p)}</span>
+
+              {/* Hình thức */}
+              <span
+                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                  kind === 'ck'
+                    ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                    : kind === 'cv'
+                    ? 'bg-purple-100 text-purple-900 border border-purple-200'
+                    : 'bg-amber-100 text-amber-900 border border-amber-200'
+                }`}
+              >
+                {kindLabel}
+              </span>
+
+              <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#0E6B5E] transition-colors" />
+            </div>
+
+            {/* Giờ ra & Ghi chú */}
+            <div className="text-xs text-[#2B3531] mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+              <span>
+                Giờ ra: <strong className="text-amber-950 font-bold">{hm(p.outAt!)} {dm(p.outAt!)}</strong>
+              </span>
+              {p.doctor && (
+                <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                  BS: {p.doctor}
+                </span>
+              )}
+            </div>
+
+            {p.outNote && (
+              <div className="text-xs text-[#4A5550] mt-1 bg-amber-50/60 px-2 py-1 rounded-lg border border-amber-100 max-w-xl">
+                <span className="font-semibold text-amber-950">Ghi chú:</span> {p.outNote}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Button: Sửa báo ra */}
+        <div
+          className="flex items-center gap-1.5 shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() => onOpenDischarge(p)}
+            className="px-2.5 py-1.5 rounded-xl border border-amber-300 bg-white hover:bg-amber-100 text-amber-900 text-xs font-semibold transition-colors cursor-pointer shadow-xs active:scale-95"
+            title="Sửa kế hoạch báo ra"
+          >
+            Sửa
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   function renderPatientRow(p: Patient) {
     const isPending = p.status === 'out' && (p.outAt || 0) > now;
