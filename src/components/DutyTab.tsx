@@ -567,15 +567,23 @@ export const DutyTab: React.FC<DutyTabProps> = ({
         </div>
 
         {/* Section 4: Manual additional notes with patient picker & auto-filled room */}
-        <div className="border border-[#DDE1DC] rounded-xl p-3.5 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="font-bold text-xs text-[#0B5C51]">Ghi thêm diễn biến lâm sàng</span>
+        <div className="border border-[#DDE1DC] rounded-2xl p-3 sm:p-4 space-y-3.5 bg-white">
+          <div className="flex items-center justify-between pb-2 border-b border-[#EEF0ED]">
+            <div className="flex items-center gap-2">
+              <span className="font-bold text-xs md:text-sm text-[#0B5C51]">
+                Ghi thêm diễn biến lâm sàng
+              </span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-50 text-[#0E6B5E] text-[11px] font-bold border border-emerald-200">
+                {blocks.length} BN
+              </span>
+            </div>
             <button
               type="button"
               onClick={addBlock}
-              className="text-xs text-[#0E6B5E] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" /> Thêm BN
+              <Plus className="w-3.5 h-3.5" />
+              <span>Thêm BN</span>
             </button>
           </div>
 
@@ -584,15 +592,49 @@ export const DutyTab: React.FC<DutyTabProps> = ({
               const selectedValue = b.name ? `${b.name}__${b.room}` : '';
 
               return (
-                <div key={bIdx} className="p-3 rounded-xl bg-[#FAFBF9] border border-[#E6E9E5] space-y-2.5 relative">
-                  {/* Row 1: Patient Selection Dropdown + Auto-filled Room + Delete */}
-                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
-                    <span className="w-5 h-5 rounded-full bg-[#0E6B5E] text-white font-bold text-[10px] flex items-center justify-center shrink-0">
-                      {bIdx + 1}
-                    </span>
+                <div
+                  key={bIdx}
+                  className="p-3 sm:p-3.5 rounded-2xl bg-[#F9FAF9] border border-[#DDE1DC] space-y-3 relative overflow-hidden"
+                >
+                  {/* Card Header: Badge + Patient title + Delete button */}
+                  <div className="flex items-center justify-between gap-2 pb-2 border-b border-[#E6E9E5]">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-5 h-5 rounded-full bg-[#0E6B5E] text-white font-bold text-[10px] flex items-center justify-center shrink-0">
+                        {bIdx + 1}
+                      </span>
+                      <span className="text-xs font-bold text-[#0F2F2A] truncate">
+                        {b.name ? `${b.name} · P.${b.room || '—'}` : `Bệnh nhân ${bIdx + 1}`}
+                      </span>
+                    </div>
 
-                    {/* Dropdown selecting current inpatients */}
-                    <div className="flex-1 min-w-[200px]">
+                    {blocks.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Xóa diễn biến của ${b.name || `Bệnh nhân ${bIdx + 1}`}?`
+                            )
+                          ) {
+                            removeBlock(bIdx);
+                          }
+                        }}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-red-600 hover:bg-red-50 text-[11px] font-semibold transition-colors cursor-pointer shrink-0"
+                        title="Xóa bệnh nhân này"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span className="hidden sm:inline">Xóa BN</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Patient Selector and Room inputs */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                    {/* Patient Select Dropdown */}
+                    <div className="flex-1 min-w-0">
+                      <label className="block text-[11px] font-semibold text-[#56615C] mb-1 sm:hidden">
+                        Chọn bệnh nhân đang điều trị:
+                      </label>
                       <select
                         value={selectedValue}
                         onChange={(e) => {
@@ -606,7 +648,7 @@ export const DutyTab: React.FC<DutyTabProps> = ({
                             updateBlockPatient(bIdx, pt.name, pt.room);
                           }
                         }}
-                        className="w-full px-2.5 py-1.5 rounded-lg border border-[#C3CAC4] text-xs font-semibold focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-white cursor-pointer"
+                        className="w-full px-2.5 py-1.5 rounded-xl border border-[#C3CAC4] text-xs font-semibold focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-white cursor-pointer truncate"
                       >
                         <option value="">-- Chọn bệnh nhân đang nằm viện ({currentInpatients.length}) --</option>
                         {currentInpatients.map((p) => (
@@ -623,30 +665,27 @@ export const DutyTab: React.FC<DutyTabProps> = ({
                     </div>
 
                     {/* Auto-filled Room */}
-                    <div className="flex items-center gap-1 shrink-0" title="Phòng (tự động điền theo bệnh nhân đã chọn)">
-                      <span className="text-[11px] text-gray-500 font-semibold">Phòng:</span>
+                    <div
+                      className="w-full sm:w-auto shrink-0 flex items-center justify-between sm:justify-start gap-1.5 bg-emerald-50/80 border border-emerald-200 px-2.5 py-1.5 rounded-xl"
+                      title="Phòng (tự động điền theo bệnh nhân đã chọn)"
+                    >
+                      <span className="text-[11px] font-bold text-[#0E6B5E]">Phòng:</span>
                       <input
                         type="text"
-                        placeholder="Phòng"
+                        placeholder="Số phòng"
                         value={b.room}
                         onChange={(e) => updateBlockRoom(bIdx, e.target.value)}
-                        className="w-16 px-2 py-1 rounded-lg border border-emerald-300 bg-emerald-50 text-xs font-bold text-[#0E6B5E] text-center focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none"
+                        className="w-16 sm:w-14 bg-transparent text-xs font-bold text-[#0E6B5E] text-center focus:outline-none"
                       />
                     </div>
-
-                    {/* Delete Block */}
-                    <button
-                      type="button"
-                      onClick={() => removeBlock(bIdx)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 rounded cursor-pointer transition-colors"
-                      title="Xóa bệnh nhân này"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
 
                   {/* Notes lines with Giờ diễn biến & Expandable Content */}
-                  <div className="space-y-2 sm:pl-7">
+                  <div className="space-y-2 pt-2 border-t border-[#EEF0ED]">
+                    <div className="text-[11px] font-semibold text-[#56615C]">
+                      Diễn biến lâm sàng:
+                    </div>
+
                     {b.notes.map((n, nIdx) => (
                       <ExpandableDutyNoteLine
                         key={nIdx}
@@ -665,7 +704,7 @@ export const DutyTab: React.FC<DutyTabProps> = ({
                     <button
                       type="button"
                       onClick={() => addNoteLine(bIdx)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-dashed border-[#0E6B5E]/60 hover:border-[#0E6B5E] text-[#0B5C51] hover:bg-emerald-50 text-xs font-semibold transition-colors cursor-pointer"
+                      className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl border border-dashed border-[#0E6B5E]/50 hover:border-[#0E6B5E] text-[#0B5C51] hover:bg-emerald-50 text-xs font-bold transition-all cursor-pointer active:scale-98 shadow-2xs"
                     >
                       <Plus className="w-3.5 h-3.5 text-[#0E6B5E]" />
                       <span>Thêm diễn biến mới</span>
