@@ -54,14 +54,13 @@ export async function generateDutyReportPdf(r: DutyReport): Promise<void> {
   doc.setFont('BVP', 'bold');
   doc.setFontSize(15);
   doc.setTextColor(15, 47, 42);
-  doc.text('BÁO CÁO TRỰC LÂM SÀNG', PAGE_W / 2, y, { align: 'center' });
+  doc.text('BÁO CÁO TRỰC', PAGE_W / 2, y, { align: 'center' });
 
   y += 5.5;
   doc.setFont('BVP', 'normal');
   doc.setFontSize(9);
   doc.setTextColor(70, 80, 76);
-  const windowTxt = `Từ 07:00 ngày ${dm(r.stats.start)} đến 07:00 ngày ${dmy(r.stats.end)}`;
-  doc.text(`Ngày trực: ${dmy(r.stats.start)} · ${windowTxt}`, PAGE_W / 2, y, { align: 'center' });
+  doc.text(`Ngày trực: ${dmy(r.stats.start)}`, PAGE_W / 2, y, { align: 'center' });
 
   y += 7.5;
 
@@ -119,15 +118,18 @@ export async function generateDutyReportPdf(r: DutyReport): Promise<void> {
     doc.text(String(cl.val), x + cw / 2, y + 12.8, { align: 'center' });
   });
 
-  y += 18;
+  y += 15; // Move to bottom edge of metric table
 
   if (c.tiem > 0) {
+    y += 4;
     doc.setFont('BVP', 'normal');
     doc.setFontSize(8.5);
     doc.setTextColor(80, 90, 86);
     doc.text(`* Thủ thuật trong ca: Tiêm khớp ${c.tiem} ca (Đã thực hiện: ${c.tiemDone} ca)`, M, y);
-    y += 5.5;
+    y += 3;
   }
+
+  y += 8.5; // Clear gap separating the table above from Section 1
 
   // Helper for crisp, aligned tables
   const renderTable = (
