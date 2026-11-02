@@ -50,10 +50,15 @@ export interface ScheduleItem {
   done: boolean;
 }
 
+export interface DutyNoteItem {
+  time?: string;
+  text: string;
+}
+
 export interface DutyBlock {
   name: string;
   room: string;
-  notes: string[];
+  notes: (string | DutyNoteItem)[];
 }
 
 export interface DutyShiftAdmit {

@@ -308,10 +308,19 @@ export async function generateDutyReportPdf(r: DutyReport): Promise<void> {
   });
 
   r.blocks.forEach((b) => {
-    if (b.name || b.room || b.notes.some((n) => n.trim())) {
+    const formattedNotes: string[] = [];
+    b.notes.forEach((n) => {
+      const timePrefix = typeof n === 'object' && n.time ? `[${n.time}] ` : '';
+      const text = typeof n === 'object' ? n.text : n;
+      if (text && text.trim()) {
+        formattedNotes.push(`${timePrefix}${text.trim()}`);
+      }
+    });
+
+    if (b.name || b.room || formattedNotes.length > 0) {
       clinicalItems.push({
         title: `• [${b.room || '—'}] ${b.name || '(Chưa rõ tên)'}:`,
-        notes: b.notes.filter((n) => n.trim())
+        notes: formattedNotes
       });
     }
   });

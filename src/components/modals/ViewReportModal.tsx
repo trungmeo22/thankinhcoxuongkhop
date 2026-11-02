@@ -149,9 +149,11 @@ export const ViewReportModal: React.FC<ViewReportModalProps> = ({
                 {report.blocks.map((b, i) => (
                   <div key={i} className="space-y-0.5">
                     <div className="font-semibold text-gray-900">• [{b.room || '—'}] {b.name}:</div>
-                    {b.notes.map((n, ni) => (
-                      <div key={ni} className="pl-4 text-gray-700">- {n}</div>
-                    ))}
+                    {b.notes.map((n, ni) => {
+                      const timePrefix = typeof n === 'object' && n.time ? `[${n.time}] ` : '';
+                      const text = typeof n === 'object' ? n.text : n;
+                      return <div key={ni} className="pl-4 text-gray-700">- {timePrefix}{text}</div>;
+                    })}
                   </div>
                 ))}
               </div>

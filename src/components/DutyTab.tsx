@@ -15,6 +15,7 @@ import {
   fold
 } from '../lib/constants';
 import { generateDutyReportPdf } from '../lib/pdf';
+import { ExpandableDutyNoteLine } from './ExpandableDutyNoteLine';
 import { FileText, Download, Copy, Check, Plus, Trash2, Edit3, X, Calendar, UserCheck, Search, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 
 interface DutyTabProps {
@@ -52,9 +53,31 @@ export const DutyTab: React.FC<DutyTabProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleCount, setVisibleCount] = useState(3);
 
+  interface DutyNoteEntry {
+    time: string;
+    text: string;
+  }
+
+  interface DutyBlockForm {
+    name: string;
+    room: string;
+    notes: DutyNoteEntry[];
+  }
+
+  // Sorted list of current inpatients
+  const currentInpatients = React.useMemo(() => {
+    return patients
+      .filter((p) => p.status === 'in')
+      .sort((a, b) => {
+        const rComp = String(a.room).localeCompare(String(b.room), 'vi', { numeric: true });
+        if (rComp !== 0) return rComp;
+        return a.name.localeCompare(b.name, 'vi');
+      });
+  }, [patients]);
+
   // Manual additional blocks for duty report
-  const [blocks, setBlocks] = useState<DutyBlock[]>([
-    { name: '', room: '', notes: [''] }
+  const [blocks, setBlocks] = useState<DutyBlockForm[]>([
+    { name: '', room: '', notes: [{ time: hm(now), text: '' }] }
   ]);
 
   // Calculate duty statistics for given date
@@ -146,39 +169,51 @@ export const DutyTab: React.FC<DutyTabProps> = ({
 
   // Block management
   const addBlock = () => {
-    setBlocks([...blocks, { name: '', room: '', notes: [''] }]);
+    setBlocks([...blocks, { name: '', room: '', notes: [{ time: hm(Date.now()), text: '' }] }]);
   };
 
   const removeBlock = (index: number) => {
     if (blocks.length === 1) {
-      setBlocks([{ name: '', room: '', notes: [''] }]);
+      setBlocks([{ name: '', room: '', notes: [{ time: hm(Date.now()), text: '' }] }]);
       return;
     }
     setBlocks(blocks.filter((_, i) => i !== index));
   };
 
-  const updateBlock = (index: number, field: 'name' | 'room', value: string) => {
+  const updateBlockPatient = (index: number, name: string, room: string) => {
     const next = [...blocks];
-    next[index] = { ...next[index], [field]: value };
+    next[index] = { ...next[index], name, room };
+    setBlocks(next);
+  };
+
+  const updateBlockRoom = (index: number, room: string) => {
+    const next = [...blocks];
+    next[index] = { ...next[index], room };
     setBlocks(next);
   };
 
   const addNoteLine = (blockIndex: number) => {
     const next = [...blocks];
-    next[blockIndex].notes.push('');
+    next[blockIndex].notes.push({ time: hm(Date.now()), text: '' });
     setBlocks(next);
   };
 
-  const updateNoteLine = (blockIndex: number, noteIndex: number, value: string) => {
+  const updateNoteTime = (blockIndex: number, noteIndex: number, time: string) => {
     const next = [...blocks];
-    next[blockIndex].notes[noteIndex] = value;
+    next[blockIndex].notes[noteIndex].time = time;
+    setBlocks(next);
+  };
+
+  const updateNoteText = (blockIndex: number, noteIndex: number, text: string) => {
+    const next = [...blocks];
+    next[blockIndex].notes[noteIndex].text = text;
     setBlocks(next);
   };
 
   const removeNoteLine = (blockIndex: number, noteIndex: number) => {
     const next = [...blocks];
     if (next[blockIndex].notes.length === 1) {
-      next[blockIndex].notes[0] = '';
+      next[blockIndex].notes[0] = { time: hm(Date.now()), text: '' };
     } else {
       next[blockIndex].notes = next[blockIndex].notes.filter((_, i) => i !== noteIndex);
     }
@@ -227,9 +262,15 @@ export const DutyTab: React.FC<DutyTabProps> = ({
         e.tx.forEach((t) => L.push(`  → Xử trí: ${t.text}`));
       });
       r.blocks.forEach((b) => {
-        if (b.name || b.room || b.notes.some((n) => n.trim())) {
+        if (b.name || b.room || b.notes.length > 0) {
           L.push(`• [${b.room || '—'}] ${b.name}:`);
-          b.notes.filter((n) => n.trim()).forEach((n) => L.push(`  - ${n}`));
+          b.notes.forEach((n) => {
+            const timeStr = typeof n === 'object' && n.time ? `[${n.time}] ` : '';
+            const textStr = typeof n === 'object' ? n.text : n;
+            if (textStr && textStr.trim()) {
+              L.push(`  - ${timeStr}${textStr.trim()}`);
+            }
+          });
         }
       });
     }
@@ -247,11 +288,16 @@ export const DutyTab: React.FC<DutyTabProps> = ({
     }
     setErr('');
 
-    const cleanBlocks = blocks
+    const cleanBlocks: DutyBlock[] = blocks
       .map((b) => ({
         name: b.name.trim(),
         room: b.room.trim(),
-        notes: b.notes.map((n) => n.trim()).filter(Boolean)
+        notes: b.notes
+          .filter((n) => n.text.trim())
+          .map((n) => ({
+            time: n.time.trim(),
+            text: n.text.trim()
+          }))
       }))
       .filter((b) => b.name || b.room || b.notes.length > 0);
 
@@ -272,7 +318,7 @@ export const DutyTab: React.FC<DutyTabProps> = ({
 
     onSaveReport(report);
     setEditingId(null);
-    setBlocks([{ name: '', room: '', notes: [''] }]);
+    setBlocks([{ name: '', room: '', notes: [{ time: hm(Date.now()), text: '' }] }]);
   };
 
   const handleEdit = (r: DutyReport) => {
@@ -283,11 +329,22 @@ export const DutyTab: React.FC<DutyTabProps> = ({
     setBlocks(
       r.blocks.length
         ? r.blocks.map((b) => ({
-            name: b.name,
-            room: b.room,
-            notes: b.notes.length ? [...b.notes] : ['']
+            name: b.name || '',
+            room: b.room || '',
+            notes: b.notes.length
+              ? b.notes.map((n) => {
+                  if (typeof n === 'string') {
+                    const match = n.match(/^\[(\d{1,2}:\d{2})\]\s*(.*)$/);
+                    if (match) {
+                      return { time: match[1], text: match[2] };
+                    }
+                    return { time: '', text: n };
+                  }
+                  return { time: n.time || '', text: n.text || '' };
+                })
+              : [{ time: hm(Date.now()), text: '' }]
           }))
-        : [{ name: '', room: '', notes: [''] }]
+        : [{ name: '', room: '', notes: [{ time: hm(Date.now()), text: '' }] }]
     );
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -326,7 +383,14 @@ export const DutyTab: React.FC<DutyTabProps> = ({
       r.stats.admits.some((a) => fold(a.name).includes(q) || fold(a.room).includes(q)) ||
       r.stats.transfers.some((t) => fold(t.name).includes(q) || fold(t.room).includes(q)) ||
       r.stats.evs.some((e) => fold(e.name).includes(q) || fold(e.room).includes(q)) ||
-      r.blocks.some((b) => fold(b.name).includes(q) || fold(b.room).includes(q));
+      r.blocks.some((b) => {
+        const nameMatch = fold(b.name).includes(q) || fold(b.room).includes(q);
+        const noteMatch = b.notes.some((n) => {
+          const text = typeof n === 'object' ? n.text : n;
+          return fold(text).includes(q);
+        });
+        return nameMatch || noteMatch;
+      });
     return matchDoc || matchNurse || matchDate || matchPatient;
   });
 
@@ -502,14 +566,14 @@ export const DutyTab: React.FC<DutyTabProps> = ({
           </div>
         </div>
 
-        {/* Section 4: Manual additional notes with patient suggestions */}
+        {/* Section 4: Manual additional notes with patient picker & auto-filled room */}
         <div className="border border-[#DDE1DC] rounded-xl p-3.5 space-y-3">
           <div className="flex items-center justify-between">
             <span className="font-bold text-xs text-[#0B5C51]">Ghi thêm diễn biến lâm sàng</span>
             <button
               type="button"
               onClick={addBlock}
-              className="text-xs text-[#0E6B5E] hover:underline font-semibold flex items-center gap-1"
+              className="text-xs text-[#0E6B5E] hover:underline font-semibold flex items-center gap-1 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" /> Thêm BN
             </button>
@@ -517,84 +581,84 @@ export const DutyTab: React.FC<DutyTabProps> = ({
 
           <div className="space-y-3">
             {blocks.map((b, bIdx) => {
-              const suggestions = getSuggestions(b.name);
+              const selectedValue = b.name ? `${b.name}__${b.room}` : '';
+
               return (
-                <div key={bIdx} className="p-3 rounded-xl bg-[#FAFBF9] border border-[#E6E9E5] space-y-2 relative">
-                  <div className="flex items-center gap-2">
+                <div key={bIdx} className="p-3 rounded-xl bg-[#FAFBF9] border border-[#E6E9E5] space-y-2.5 relative">
+                  {/* Row 1: Patient Selection Dropdown + Auto-filled Room + Delete */}
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2">
                     <span className="w-5 h-5 rounded-full bg-[#0E6B5E] text-white font-bold text-[10px] flex items-center justify-center shrink-0">
                       {bIdx + 1}
                     </span>
-                    <input
-                      type="text"
-                      placeholder="Họ tên bệnh nhân"
-                      value={b.name}
-                      onChange={(e) => updateBlock(bIdx, 'name', e.target.value)}
-                      className="flex-1 px-2.5 py-1 rounded-lg border border-[#C3CAC4] text-xs font-semibold focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Phòng"
-                      value={b.room}
-                      onChange={(e) => updateBlock(bIdx, 'room', e.target.value)}
-                      className="w-20 px-2.5 py-1 rounded-lg border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none"
-                    />
+
+                    {/* Dropdown selecting current inpatients */}
+                    <div className="flex-1 min-w-[200px]">
+                      <select
+                        value={selectedValue}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (!val) {
+                            updateBlockPatient(bIdx, '', '');
+                            return;
+                          }
+                          const pt = currentInpatients.find((p) => `${p.name}__${p.room}` === val);
+                          if (pt) {
+                            updateBlockPatient(bIdx, pt.name, pt.room);
+                          }
+                        }}
+                        className="w-full px-2.5 py-1.5 rounded-lg border border-[#C3CAC4] text-xs font-semibold focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-white cursor-pointer"
+                      >
+                        <option value="">-- Chọn bệnh nhân đang nằm viện ({currentInpatients.length}) --</option>
+                        {currentInpatients.map((p) => (
+                          <option key={p.id} value={`${p.name}__${p.room}`}>
+                            P.{p.room} · {p.name} ({ageText(p)})
+                          </option>
+                        ))}
+                        {b.name && !currentInpatients.some((p) => p.name === b.name) && (
+                          <option value={selectedValue}>
+                            [P.{b.room}] {b.name} (Đã xuất viện / Nhập tay)
+                          </option>
+                        )}
+                      </select>
+                    </div>
+
+                    {/* Auto-filled Room */}
+                    <div className="flex items-center gap-1 shrink-0" title="Phòng (tự động điền theo bệnh nhân đã chọn)">
+                      <span className="text-[11px] text-gray-500 font-semibold">Phòng:</span>
+                      <input
+                        type="text"
+                        placeholder="Phòng"
+                        value={b.room}
+                        onChange={(e) => updateBlockRoom(bIdx, e.target.value)}
+                        className="w-16 px-2 py-1 rounded-lg border border-emerald-300 bg-emerald-50 text-xs font-bold text-[#0E6B5E] text-center focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none"
+                      />
+                    </div>
+
+                    {/* Delete Block */}
                     <button
                       type="button"
                       onClick={() => removeBlock(bIdx)}
-                      className="p-1 text-gray-400 hover:text-red-600 rounded"
+                      className="p-1.5 text-gray-400 hover:text-red-600 rounded cursor-pointer transition-colors"
                       title="Xóa bệnh nhân này"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
 
-                  {/* Suggestions chips */}
-                  {suggestions.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pl-7">
-                      {suggestions.map((sg) => (
-                        <button
-                          key={sg.id}
-                          type="button"
-                          onClick={() => {
-                            updateBlock(bIdx, 'name', sg.name);
-                            updateBlock(bIdx, 'room', sg.room);
-                          }}
-                          className="px-2 py-0.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[10px] font-medium border border-emerald-200"
-                        >
-                          {sg.room} · {sg.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Notes lines */}
-                  <div className="space-y-1.5 pl-7">
+                  {/* Notes lines with Giờ diễn biến & Expandable Content */}
+                  <div className="space-y-2 sm:pl-7">
                     {b.notes.map((n, nIdx) => (
-                      <div key={nIdx} className="flex items-center gap-1.5">
-                        <textarea
-                          rows={1}
-                          placeholder={`Nội dung diễn biến ${nIdx + 1}...`}
-                          value={n}
-                          onChange={(e) => updateNoteLine(bIdx, nIdx, e.target.value)}
-                          className="flex-1 px-2.5 py-1 rounded-lg border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none resize-y"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => addNoteLine(bIdx)}
-                          className="p-1 text-emerald-700 hover:bg-emerald-50 rounded"
-                          title="Thêm dòng"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => removeNoteLine(bIdx, nIdx)}
-                          className="p-1 text-gray-400 hover:text-red-500 rounded"
-                          title="Xóa dòng"
-                        >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
+                      <ExpandableDutyNoteLine
+                        key={nIdx}
+                        time={n.time}
+                        text={n.text}
+                        placeholder={`Diễn biến ${nIdx + 1}: đau khớp, sốt, đáp ứng thuốc, xử trí...`}
+                        onTimeChange={(val) => updateNoteTime(bIdx, nIdx, val)}
+                        onTextChange={(val) => updateNoteText(bIdx, nIdx, val)}
+                        onAddLine={() => addNoteLine(bIdx)}
+                        onRemoveLine={() => removeNoteLine(bIdx, nIdx)}
+                        canRemove={b.notes.length > 1}
+                      />
                     ))}
                   </div>
                 </div>
@@ -608,7 +672,7 @@ export const DutyTab: React.FC<DutyTabProps> = ({
         <button
           type="button"
           onClick={handleSave}
-          className="px-5 py-2.5 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-semibold shadow-xs transition-colors"
+          className="px-5 py-2.5 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-semibold shadow-xs transition-colors cursor-pointer"
         >
           {editingId ? 'Lưu thay đổi' : 'Lưu báo cáo trực'}
         </button>
