@@ -9,7 +9,8 @@ import {
   dmy,
   ageText,
   KIND_LABELS,
-  fold
+  fold,
+  isNewAdmitted
 } from '../lib/constants';
 import { Search, Plus, Edit2, HeartPulse, CalendarPlus, LogOut, ArrowLeft, Clock, ChevronRight, X } from 'lucide-react';
 import { PatientDetailView } from './PatientDetailView';
@@ -109,8 +110,8 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
   };
 
   const activePatients = patients.filter((p) => isIn(p, now)).filter(match);
-  const newIn24h = activePatients.filter((p) => now - p.admitAt < DAY);
-  const newIds = new Set(newIn24h.map((p) => p.id));
+  const newPatients = activePatients.filter((p) => isNewAdmitted(p.admitAt, now));
+  const newIds = new Set(newPatients.map((p) => p.id));
   const olderPatients = activePatients.filter((p) => !newIds.has(p.id));
 
   // Discharged list
@@ -221,7 +222,7 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
       {/* View: Inpatients */}
       {!showOut && (
         <div className="space-y-4">
-          {/* Newly admitted 24h */}
+          {/* Newly admitted */}
           <div className="bg-white rounded-2xl border border-[#DDE1DC] shadow-xs overflow-hidden">
             <div className="p-3.5 bg-[#FDF0E5]/60 border-b border-[#F5D8C4] flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -229,18 +230,18 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
                   Mới
                 </span>
                 <h3 className="text-xs md:text-sm font-bold text-[#0F2F2A]">
-                  Mới nhập viện (24h) · {newIn24h.length}
+                  Mới nhập viện · {newPatients.length}
                 </h3>
               </div>
             </div>
 
             <div className="divide-y divide-[#EEF0ED]">
-              {!newIn24h.length ? (
+              {!newPatients.length ? (
                 <div className="p-4 text-xs text-center text-[#56615C]">
-                  Không có bệnh nhân mới trong 24 giờ qua.
+                  Chưa có bệnh nhân mới nhập viện.
                 </div>
               ) : (
-                newIn24h.map((p) => renderPatientRow(p))
+                newPatients.map((p) => renderPatientRow(p))
               )}
             </div>
           </div>

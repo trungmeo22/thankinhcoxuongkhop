@@ -11,7 +11,8 @@ import {
   hm,
   ageText,
   TYPE_LABELS,
-  dmy
+  dmy,
+  isNewAdmitted
 } from '../lib/constants';
 import {
   Bed,
@@ -80,9 +81,9 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
   const dienToday = procToday - tiemToday;
   const pendingProcToday = todayScheds.filter((s) => !s.done).length;
 
-  // 24h newly admitted
-  const newIn24h = activePatients
-    .filter((p) => now - p.admitAt < DAY)
+  // Newly admitted in current clinical shift (7h -> 6h59)
+  const newPatients = activePatients
+    .filter((p) => isNewAdmitted(p.admitAt, now))
     .sort((a, b) => b.admitAt - a.admitAt);
 
   // Pending discharges (waiting)
@@ -534,13 +535,13 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             </div>
           </div>
 
-          {/* 24h New Admissions */}
+          {/* New Admissions */}
           <div className="bg-white rounded-2xl border border-[#DDE1DC] shadow-xs overflow-hidden">
             <div className="flex items-center justify-between p-3.5 bg-[#F9FAF9] border-b border-[#E6E9E5]">
               <div className="font-bold text-xs text-[#0F2F2A] flex items-center gap-1.5">
-                <span>Mới nhập viện (24h)</span>
+                <span>Mới nhập viện</span>
                 <span className="px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px]">
-                  {newIn24h.length}
+                  {newPatients.length}
                 </span>
               </div>
               <button
@@ -553,10 +554,10 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             </div>
 
             <div className="divide-y divide-[#EEF0ED] max-h-52 overflow-y-auto">
-              {!newIn24h.length ? (
-                <div className="p-4 text-xs text-center text-[#56615C]">Chưa có bệnh nhân mới nhập viện trong 24h.</div>
+              {!newPatients.length ? (
+                <div className="p-4 text-xs text-center text-[#56615C]">Chưa có bệnh nhân mới nhập viện.</div>
               ) : (
-                newIn24h.slice(0, 5).map((p) => (
+                newPatients.slice(0, 5).map((p) => (
                   <div key={p.id} className="p-3 flex items-center gap-2.5 text-xs">
                     <span className="px-2 py-1 rounded-md bg-[#0F2F2A] text-white font-bold text-[11px] shrink-0">
                       {p.room}

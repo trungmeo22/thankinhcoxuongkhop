@@ -175,3 +175,27 @@ export function fold(x: string): string {
 export function uid(): number {
   return Date.now() * 1000 + Math.floor(Math.random() * 1000);
 }
+
+/**
+ * Lấy mốc thời gian bắt đầu (07:00 ngày làm việc hiện tại)
+ * và kết thúc (06:59:59.999 ngày tiếp theo).
+ * Nếu hiện tại < 7h sáng, ngày làm việc bắt đầu từ 07:00 hôm qua.
+ * Nếu hiện tại >= 7h sáng, ngày làm việc bắt đầu từ 07:00 hôm nay.
+ */
+export function getClinicalDayWindow(now: number = Date.now()): { start: number; end: number } {
+  const d = new Date(now);
+  const base = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  let start: number;
+  if (d.getHours() < 7) {
+    start = base.getTime() - DAY + 7 * HOUR;
+  } else {
+    start = base.getTime() + 7 * HOUR;
+  }
+  const end = start + DAY - 1; // 6h59:59.999 ngày hôm sau
+  return { start, end };
+}
+
+export function isNewAdmitted(admitAt: number, now: number = Date.now()): boolean {
+  const { start, end } = getClinicalDayWindow(now);
+  return admitAt >= start && admitAt <= end;
+}
