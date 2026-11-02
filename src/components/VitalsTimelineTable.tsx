@@ -377,12 +377,12 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
       <div className="relative">
         {/* Left Gradient Overlay */}
         {canScrollLeft && (
-          <div className="pointer-events-none absolute left-28 sm:left-36 top-0 bottom-0 w-8 bg-gradient-to-r from-black/10 to-transparent z-25 transition-opacity" />
+          <div className="pointer-events-none absolute left-24 sm:left-28 top-0 bottom-0 w-6 bg-gradient-to-r from-black/10 to-transparent z-25 transition-opacity" />
         )}
 
         {/* Right Gradient Overlay */}
         {canScrollRight && (
-          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black/10 to-transparent z-25 transition-opacity" />
+          <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-black/10 to-transparent z-25 transition-opacity" />
         )}
 
         {/* Scrollable Container with Momentum Drag Engine */}
@@ -398,14 +398,14 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
             overscrollBehaviorX: 'contain',
           }}
         >
-          <table className="w-full text-xs border-collapse">
+          <table className="w-full text-[11px] border-collapse">
             <thead>
               {/* Row 1: Date Group Headers */}
               <tr className="bg-[#FAFBF9] border-b border-[#EEF0ED]">
-                <th className="sticky left-0 z-30 p-2.5 text-left font-bold text-gray-700 bg-white border-r border-[#DDE1DC] w-28 sm:w-36 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
-                  <div className="flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-[#0E6B5E]" />
-                    <span>Ngày theo dõi</span>
+                <th className="sticky left-0 z-30 px-2 py-1.5 text-left font-bold text-gray-700 bg-white border-r border-[#DDE1DC] w-24 sm:w-28 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3 text-[#0E6B5E]" />
+                    <span className="text-[10px] sm:text-[11px]">Ngày theo dõi</span>
                   </div>
                 </th>
 
@@ -413,22 +413,22 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
                   <th
                     key={group.date}
                     colSpan={group.records.length}
-                    className={`p-2 text-center font-bold border-r border-[#EEF0ED] last:border-r-0 ${
+                    className={`px-1.5 py-1 text-center font-bold border-r border-[#EEF0ED] last:border-r-0 ${
                       group.isToday
                         ? 'bg-emerald-50/80 text-emerald-950 border-emerald-200'
                         : 'bg-[#F4F6F3] text-[#0F2F2A]'
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-2 px-2">
-                      <div className="flex items-center gap-1.5">
-                        <span>{group.displayLabel}</span>
-                        <span className="px-1.5 py-0.2 rounded-full bg-white/90 text-[10px] font-bold text-emerald-900 border border-emerald-200">
-                          {group.records.length} lần đo
+                    <div className="flex items-center justify-between gap-1.5 px-1.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] sm:text-[11px]">{group.displayLabel}</span>
+                        <span className="px-1 py-0.2 rounded-full bg-white/90 text-[9px] font-bold text-emerald-900 border border-emerald-200">
+                          {group.records.length} lần
                         </span>
                       </div>
 
                       {group.abnormalCount > 0 && (
-                        <span className="text-[10px] font-bold text-red-700 bg-red-100 px-1.5 py-0.2 rounded-full flex items-center gap-0.5 shrink-0">
+                        <span className="text-[9px] font-bold text-red-700 bg-red-100 px-1 py-0.2 rounded-full flex items-center gap-0.5 shrink-0">
                           <AlertTriangle className="w-2.5 h-2.5" />
                           <span>{group.abnormalCount} bất thường</span>
                         </span>
@@ -440,13 +440,13 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
 
               {/* Row 2: Measurement Slots */}
               <tr className="bg-[#FAFBF9] border-b border-[#EEF0ED]">
-                <th className="sticky left-0 z-30 p-2 text-left font-bold text-gray-500 bg-white border-r border-[#DDE1DC] w-28 sm:w-36 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                <th className="sticky left-0 z-30 px-2 py-1 text-left font-bold text-gray-500 bg-white border-r border-[#DDE1DC] w-24 sm:w-28 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] text-[10px]">
                   Lần đo / Mốc
                 </th>
                 {sortedItems.map((r, idx) => (
                   <th
                     key={r.id ? r.id : `admit-${idx}`}
-                    className="p-2 text-center font-bold text-[#0F2F2A] border-r border-[#EEF0ED] last:border-r-0 min-w-[130px] max-w-[160px]"
+                    className="px-1.5 py-1 text-center font-bold text-[#0F2F2A] border-r border-[#EEF0ED] last:border-r-0 min-w-[95px] sm:min-w-[105px] max-w-[130px]"
                   >
                     <div className="flex items-center justify-center gap-1 flex-wrap">
                       <span className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-900 text-[10px] flex items-center justify-center font-bold">
@@ -476,16 +476,16 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
             <tbody className="divide-y divide-[#EEF0ED]">
               {/* Row 1: Giờ đo */}
               <tr>
-                <td className="sticky left-0 z-20 p-2 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-28 sm:w-36 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                <td className="sticky left-0 z-20 px-2 py-1 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-24 sm:w-28 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] text-[10px]">
                   Giờ đo
                 </td>
                 {sortedItems.map((r, idx) => (
                   <td
                     key={r.id ? r.id : `admit-${idx}`}
-                    className="p-2 text-center font-bold text-gray-800 border-r border-[#EEF0ED] last:border-r-0"
+                    className="px-1.5 py-1 text-center font-bold text-gray-800 border-r border-[#EEF0ED] last:border-r-0"
                   >
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-gray-100 font-mono text-[11px]">
-                      <Clock className="w-3 h-3 text-gray-400" />
+                    <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded bg-gray-100 font-mono text-[10px]">
+                      <Clock className="w-2.5 h-2.5 text-gray-400" />
                       <span>{hm(r.at)}</span>
                     </span>
                   </td>
@@ -494,7 +494,7 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
 
               {/* Row 2: Mạch (Pulse) */}
               <tr>
-                <td className="sticky left-0 z-20 p-2 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-28 sm:w-36 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                <td className="sticky left-0 z-20 px-2 py-1 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-24 sm:w-28 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] text-[10px]">
                   Mạch (ck/p)
                 </td>
                 {sortedItems.map((r, idx) => {
@@ -502,11 +502,11 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
                   return (
                     <td
                       key={r.id ? r.id : `admit-${idx}`}
-                      className="p-2 text-center border-r border-[#EEF0ED] last:border-r-0"
+                      className="px-1.5 py-1 text-center border-r border-[#EEF0ED] last:border-r-0"
                     >
                       {r.pulse ? (
                         <span
-                          className={`inline-block px-2 py-0.5 rounded-lg text-xs font-bold ${
+                          className={`inline-block px-1.5 py-0.2 rounded-md text-[11px] font-bold ${
                             bad
                               ? 'bg-red-50 text-red-700 border border-red-200'
                               : 'text-gray-800'
@@ -524,7 +524,7 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
 
               {/* Row 3: Huyết áp (BP) */}
               <tr>
-                <td className="sticky left-0 z-20 p-2 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-28 sm:w-36 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                <td className="sticky left-0 z-20 px-2 py-1 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-24 sm:w-28 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] text-[10px]">
                   Huyết áp (mmHg)
                 </td>
                 {sortedItems.map((r, idx) => {
@@ -532,11 +532,11 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
                   return (
                     <td
                       key={r.id ? r.id : `admit-${idx}`}
-                      className="p-2 text-center border-r border-[#EEF0ED] last:border-r-0"
+                      className="px-1.5 py-1 text-center border-r border-[#EEF0ED] last:border-r-0"
                     >
                       {r.bp ? (
                         <span
-                          className={`inline-block px-2 py-0.5 rounded-lg text-xs font-bold ${
+                          className={`inline-block px-1.5 py-0.2 rounded-md text-[11px] font-bold ${
                             bad
                               ? 'bg-red-50 text-red-700 border border-red-200'
                               : 'text-gray-800'
@@ -554,7 +554,7 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
 
               {/* Row 4: Nhiệt độ (°C) */}
               <tr>
-                <td className="sticky left-0 z-20 p-2 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-28 sm:w-36 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                <td className="sticky left-0 z-20 px-2 py-1 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-24 sm:w-28 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] text-[10px]">
                   Nhiệt độ (°C)
                 </td>
                 {sortedItems.map((r, idx) => {
@@ -562,11 +562,11 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
                   return (
                     <td
                       key={r.id ? r.id : `admit-${idx}`}
-                      className="p-2 text-center border-r border-[#EEF0ED] last:border-r-0"
+                      className="px-1.5 py-1 text-center border-r border-[#EEF0ED] last:border-r-0"
                     >
                       {r.temp ? (
                         <span
-                          className={`inline-block px-2 py-0.5 rounded-lg text-xs font-bold ${
+                          className={`inline-block px-1.5 py-0.2 rounded-md text-[11px] font-bold ${
                             bad
                               ? 'bg-red-50 text-red-700 border border-red-200'
                               : 'text-gray-800'
@@ -584,7 +584,7 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
 
               {/* Row 5: SpO2 (%) */}
               <tr>
-                <td className="sticky left-0 z-20 p-2 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-28 sm:w-36 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                <td className="sticky left-0 z-20 px-2 py-1 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-24 sm:w-28 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] text-[10px]">
                   SpO₂ (%)
                 </td>
                 {sortedItems.map((r, idx) => {
@@ -592,11 +592,11 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
                   return (
                     <td
                       key={r.id ? r.id : `admit-${idx}`}
-                      className="p-2 text-center border-r border-[#EEF0ED] last:border-r-0"
+                      className="px-1.5 py-1 text-center border-r border-[#EEF0ED] last:border-r-0"
                     >
                       {r.spo2 ? (
                         <span
-                          className={`inline-block px-2 py-0.5 rounded-lg text-xs font-bold ${
+                          className={`inline-block px-1.5 py-0.2 rounded-md text-[11px] font-bold ${
                             bad
                               ? 'bg-red-50 text-red-700 border border-red-200'
                               : 'text-gray-800'
@@ -614,7 +614,7 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
 
               {/* Row 6: Nhịp thở (lần/phút) */}
               <tr>
-                <td className="sticky left-0 z-20 p-2 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-28 sm:w-36 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                <td className="sticky left-0 z-20 px-2 py-1 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-24 sm:w-28 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] text-[10px]">
                   Nhịp thở (l/p)
                 </td>
                 {sortedItems.map((r, idx) => {
@@ -622,11 +622,11 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
                   return (
                     <td
                       key={r.id ? r.id : `admit-${idx}`}
-                      className="p-2 text-center border-r border-[#EEF0ED] last:border-r-0"
+                      className="px-1.5 py-1 text-center border-r border-[#EEF0ED] last:border-r-0"
                     >
                       {r.rr ? (
                         <span
-                          className={`inline-block px-2 py-0.5 rounded-lg text-xs font-bold ${
+                          className={`inline-block px-1.5 py-0.2 rounded-md text-[11px] font-bold ${
                             bad
                               ? 'bg-red-50 text-red-700 border border-red-200'
                               : 'text-gray-800'
@@ -644,17 +644,17 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
 
               {/* Row 7: Diễn biến lâm sàng */}
               <tr>
-                <td className="sticky left-0 z-20 p-2 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-28 sm:w-36 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                <td className="sticky left-0 z-20 px-2 py-1 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-24 sm:w-28 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] text-[10px]">
                   Diễn biến
                 </td>
                 {sortedItems.map((r, idx) => (
                   <td
                     key={r.id ? r.id : `admit-${idx}`}
-                    className="p-2 text-center border-r border-[#EEF0ED] last:border-r-0 max-w-[160px]"
+                    className="px-1.5 py-1 text-center border-r border-[#EEF0ED] last:border-r-0 max-w-[130px]"
                   >
                     {r.note ? (
                       <div
-                        className="text-[11px] text-gray-700 bg-gray-50 p-1.5 rounded-lg text-left line-clamp-3 leading-snug cursor-help"
+                        className="text-[10px] text-gray-700 bg-gray-50 p-1.5 rounded-md text-left line-clamp-3 leading-tight cursor-help"
                         title={r.note}
                       >
                         {r.note}
@@ -668,30 +668,30 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
 
               {/* Row 8: Xử trí & Can thiệp */}
               <tr>
-                <td className="sticky left-0 z-20 p-2 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-28 sm:w-36 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                <td className="sticky left-0 z-20 px-2 py-1 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-24 sm:w-28 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] text-[10px]">
                   Xử trí / Y lệnh
                 </td>
                 {sortedItems.map((r, idx) => (
                   <td
                     key={r.id ? r.id : `admit-${idx}`}
-                    className="p-2 text-center border-r border-[#EEF0ED] last:border-r-0 max-w-[170px]"
+                    className="px-1.5 py-1 text-center border-r border-[#EEF0ED] last:border-r-0 max-w-[140px]"
                   >
                     <div className="space-y-1">
                       {r.tx && r.tx.length > 0 ? (
                         r.tx.map((t) => (
                           <div
                             key={t.id}
-                            className="text-[11px] text-emerald-950 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100 text-left line-clamp-2 leading-snug"
+                            className="text-[10px] text-emerald-950 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100 text-left line-clamp-2 leading-tight"
                             title={`${t.text} (${hm(t.at)})`}
                           >
                             <span className="font-semibold">{t.text}</span>
-                            <span className="text-[10px] text-emerald-700 block mt-0.5">
+                            <span className="text-[9px] text-emerald-700 block mt-0.2">
                               {hm(t.at)}
                             </span>
                           </div>
                         ))
                       ) : (
-                        <span className="text-gray-300 block mb-1">—</span>
+                        <span className="text-gray-300 block mb-0.5">—</span>
                       )}
 
                       {!r.isAdmit && onAddTreatment && (
@@ -701,9 +701,9 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
                             setActiveTxItem(r);
                             setTxInput('');
                           }}
-                          className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#0E6B5E] hover:underline cursor-pointer"
+                          className="inline-flex items-center gap-0.5 text-[9px] sm:text-[10px] font-semibold text-[#0E6B5E] hover:underline cursor-pointer"
                         >
-                          <Plus className="w-3 h-3" />
+                          <Plus className="w-2.5 h-2.5" />
                           <span>+ Thêm xử trí</span>
                         </button>
                       )}
@@ -714,16 +714,16 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
 
               {/* Row 9: Thao tác (Sửa & Xóa) */}
               <tr>
-                <td className="sticky left-0 z-20 p-2 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-28 sm:w-36 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                <td className="sticky left-0 z-20 px-2 py-1 font-semibold text-gray-600 bg-white border-r border-[#DDE1DC] w-24 sm:w-28 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)] text-[10px]">
                   Thao tác
                 </td>
                 {sortedItems.map((r, idx) => (
                   <td
                     key={r.id ? r.id : `admit-${idx}`}
-                    className="p-2 text-center border-r border-[#EEF0ED] last:border-r-0"
+                    className="px-1.5 py-1 text-center border-r border-[#EEF0ED] last:border-r-0"
                   >
                     {!r.isAdmit ? (
-                      <div className="flex items-center justify-center gap-1.5">
+                      <div className="flex items-center justify-center gap-1">
                         {onEditVitals && (
                           <button
                             type="button"
@@ -732,10 +732,10 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
                               e.stopPropagation();
                               onEditVitals(r);
                             }}
-                            className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] sm:min-w-[28px] sm:min-h-[28px] rounded-lg flex items-center justify-center bg-gray-50 sm:bg-transparent hover:bg-gray-100 text-gray-600 hover:text-emerald-700 active:scale-95 transition-transform"
+                            className="p-1 min-w-[26px] min-h-[26px] sm:min-w-[24px] sm:min-h-[24px] rounded-md flex items-center justify-center bg-gray-50 sm:bg-transparent hover:bg-gray-100 text-gray-600 hover:text-emerald-700 active:scale-95 transition-transform"
                             title="Sửa lần đo này"
                           >
-                            <Edit2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                            <Edit2 className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                           </button>
                         )}
                         {onDeleteVitals && (
@@ -752,15 +752,15 @@ export const VitalsTimelineTable: React.FC<VitalsTimelineTableProps> = ({
                                 onDeleteVitals(r.id);
                               }
                             }}
-                            className="p-2 sm:p-1.5 min-w-[34px] min-h-[34px] sm:min-w-[28px] sm:min-h-[28px] rounded-lg flex items-center justify-center bg-red-50/60 sm:bg-transparent hover:bg-red-100 text-red-500 hover:text-red-700 active:scale-95 transition-transform"
+                            className="p-1 min-w-[26px] min-h-[26px] sm:min-w-[24px] sm:min-h-[24px] rounded-md flex items-center justify-center bg-red-50/60 sm:bg-transparent hover:bg-red-100 text-red-500 hover:text-red-700 active:scale-95 transition-transform"
                             title="Xóa lần đo này"
                           >
-                            <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5 sm:w-3 sm:h-3" />
                           </button>
                         )}
                       </div>
                     ) : (
-                      <span className="text-[10px] text-gray-400 italic">Vào viện</span>
+                      <span className="text-[9px] text-gray-400 italic">Vào viện</span>
                     )}
                   </td>
                 ))}
