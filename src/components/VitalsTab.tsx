@@ -8,7 +8,6 @@ import {
   dmy,
   WDL,
   hm,
-  ageText,
   byRoom,
   getVitals,
   hasVit,
@@ -16,7 +15,7 @@ import {
   KIND_LABELS,
   fold,
 } from '../lib/constants';
-import { Plus, FileSpreadsheet, AlertTriangle, Calendar, ChevronDown, ChevronUp, ArrowLeft, Search, X } from 'lucide-react';
+import { Plus, FileSpreadsheet, AlertTriangle, Calendar, ArrowLeft, Search, X } from 'lucide-react';
 import { VitalsTimelineTable } from './VitalsTimelineTable';
 
 interface VitalsTabProps {
@@ -236,51 +235,42 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
                   {roomPatients.map((p) => {
                     const isExpanded = expandedPids.has(p.id);
                     const fullTimeline = getPatientFullTimeline(p);
+                    const ageStr = p.age ? `${String(p.age).trim()}t` : '';
 
                     return (
                       <div key={p.id} className="transition-colors">
-                        {/* Collapsed / Summary Header Row: Chỉ gồm tên, tuổi, phòng, nút Thêm DHST */}
+                        {/* Collapsed / Summary Header Row: Tên bệnh nhân, tuổi (t), nút Thêm DHST */}
                         <div
                           onClick={() => toggleExpand(p.id)}
-                          className={`p-3 sm:p-3.5 flex items-center justify-between gap-3 cursor-pointer select-none transition-colors ${
-                            isExpanded ? 'bg-emerald-50/40 border-b border-emerald-100' : 'bg-white hover:bg-gray-50/80'
+                          className={`px-3 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between gap-2.5 cursor-pointer select-none transition-colors ${
+                            isExpanded ? 'bg-emerald-50/50 border-b border-emerald-100' : 'bg-white hover:bg-gray-50/80'
                           }`}
                         >
-                          {/* Left: Phòng, Tên, Tuổi */}
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="px-2.5 py-1 rounded-xl bg-[#0F2F2A] text-white font-bold text-xs shrink-0 shadow-xs">
-                              Phòng {p.room}
-                            </span>
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <strong className="text-sm text-[#0F2F2A] font-bold truncate">{p.name}</strong>
-                              <span className="text-xs text-gray-500 shrink-0">({ageText(p)})</span>
-                            </div>
+                          {/* Left: Tên bệnh nhân & Tuổi viết tắt (t) */}
+                          <div className="flex items-baseline gap-1.5 min-w-0 flex-1">
+                            <strong className="text-sm text-[#0F2F2A] font-bold truncate">
+                              {p.name}
+                            </strong>
+                            {ageStr && (
+                              <span className="text-xs text-gray-500 shrink-0 font-medium">
+                                ({ageStr})
+                              </span>
+                            )}
                           </div>
 
-                          {/* Right: Nút Thêm DHST & Mũi tên mở rộng */}
-                          <div className="flex items-center gap-2 shrink-0">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onOpenRecordModal(p);
-                              }}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#0E6B5E] bg-white hover:bg-emerald-50 text-[#0B5C51] text-xs font-bold transition-all cursor-pointer active:scale-95 shadow-xs whitespace-nowrap"
-                              title="Thêm lần đo DHST cho bệnh nhân này"
-                            >
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>Thêm DHST</span>
-                            </button>
-
-                            <div className="flex items-center gap-1 pl-1 text-xs font-semibold text-[#0E6B5E]">
-                              <span className="hidden md:inline">{isExpanded ? 'Thu gọn' : 'Timeline'}</span>
-                              {isExpanded ? (
-                                <ChevronUp className="w-4 h-4 text-[#0E6B5E]" />
-                              ) : (
-                                <ChevronDown className="w-4 h-4 text-gray-400" />
-                              )}
-                            </div>
-                          </div>
+                          {/* Right: Nút Thêm DHST thu nhỏ bề ngang, không còn mũi tên */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onOpenRecordModal(p);
+                            }}
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-lg border border-[#0E6B5E] bg-white hover:bg-emerald-50 text-[#0B5C51] text-[11px] font-bold transition-all cursor-pointer active:scale-95 shadow-xs whitespace-nowrap shrink-0"
+                            title="Thêm lần đo DHST cho bệnh nhân này"
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Thêm DHST</span>
+                          </button>
                         </div>
 
                         {/* Expanded Section: Mở trực tiếp timeline trượt ngang */}
