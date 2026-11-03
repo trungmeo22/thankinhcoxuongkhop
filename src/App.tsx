@@ -3,6 +3,7 @@ import { Patient, VitalRecord, ScheduleItem, DutyReport, DischargeKind, GlucoseR
 import {
   auth,
   db,
+  COLLECTIONS,
   signOutStaff,
   ensureFirebaseAuth,
   savePatientToFirestore,
@@ -179,7 +180,7 @@ export default function App() {
 
     // 1. Patients collection
     const unsubsPatients = onSnapshot(
-      collection(db, 'patients'),
+      collection(db, COLLECTIONS.PATIENTS),
       (snapshot) => {
         const list: Patient[] = [];
         snapshot.forEach((doc) => {
@@ -224,7 +225,7 @@ export default function App() {
 
     // 2. Vital Records collection
     const unsubsRecs = onSnapshot(
-      collection(db, 'recs'),
+      collection(db, COLLECTIONS.RECS),
       (snapshot) => {
         const list: VitalRecord[] = [];
         snapshot.forEach((doc) => {
@@ -246,7 +247,7 @@ export default function App() {
 
     // 3. Scheds collection
     const unsubsScheds = onSnapshot(
-      collection(db, 'scheds'),
+      collection(db, COLLECTIONS.SCHEDS),
       (snapshot) => {
         const list: ScheduleItem[] = [];
         snapshot.forEach((doc) => {
@@ -267,7 +268,7 @@ export default function App() {
 
     // 4. Reports collection
     const unsubsReports = onSnapshot(
-      collection(db, 'reports'),
+      collection(db, COLLECTIONS.REPORTS),
       (snapshot) => {
         const list: DutyReport[] = [];
         snapshot.forEach((doc) => {
@@ -290,7 +291,7 @@ export default function App() {
 
     // 5. Settings document
     const unsubsSettings = onSnapshot(
-      doc(db, 'settings', '1'),
+      doc(db, COLLECTIONS.SETTINGS, '1'),
       (snapshot) => {
         if (snapshot.exists()) {
           const data = snapshot.data();
@@ -321,7 +322,7 @@ export default function App() {
 
     // 6. Glucose records collection
     const unsubsGlucose = onSnapshot(
-      collection(db, 'glucose_records'),
+      collection(db, COLLECTIONS.GLUCOSE),
       (snapshot) => {
         const list: GlucoseRecord[] = [];
         snapshot.forEach((doc) => {

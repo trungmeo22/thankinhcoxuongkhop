@@ -28,6 +28,16 @@ const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
+/** Dedicated collections for Don nguyen Co xuong khop to guarantee 100% database isolation from other hospital apps */
+export const COLLECTIONS = {
+  PATIENTS: 'cxk_patients',
+  RECS: 'cxk_recs',
+  GLUCOSE: 'cxk_glucose_records',
+  SCHEDS: 'cxk_scheds',
+  REPORTS: 'cxk_reports',
+  SETTINGS: 'cxk_settings',
+} as const;
+
 export const DEFAULT_STAFF_EMAIL = 'cxk@benhvien.vn';
 export const DEFAULT_STAFF_PW = '12345678';
 
@@ -145,99 +155,99 @@ export function cleanForFirestore<T>(data: T): any {
 
 // Data synchronization helpers
 export async function savePatientToFirestore(p: Patient) {
-  const path = `patients/${p.id}`;
+  const path = `${COLLECTIONS.PATIENTS}/${p.id}`;
   try {
-    await setDoc(doc(db, 'patients', String(p.id)), cleanForFirestore(p));
+    await setDoc(doc(db, COLLECTIONS.PATIENTS, String(p.id)), cleanForFirestore(p));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
 }
 
 export async function deletePatientFromFirestore(id: number) {
-  const path = `patients/${id}`;
+  const path = `${COLLECTIONS.PATIENTS}/${id}`;
   try {
-    await deleteDoc(doc(db, 'patients', String(id)));
+    await deleteDoc(doc(db, COLLECTIONS.PATIENTS, String(id)));
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
   }
 }
 
 export async function saveRecToFirestore(r: VitalRecord) {
-  const path = `recs/${r.id}`;
+  const path = `${COLLECTIONS.RECS}/${r.id}`;
   try {
-    await setDoc(doc(db, 'recs', String(r.id)), cleanForFirestore(r));
+    await setDoc(doc(db, COLLECTIONS.RECS, String(r.id)), cleanForFirestore(r));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
 }
 
 export async function deleteRecFromFirestore(id: number) {
-  const path = `recs/${id}`;
+  const path = `${COLLECTIONS.RECS}/${id}`;
   try {
-    await deleteDoc(doc(db, 'recs', String(id)));
+    await deleteDoc(doc(db, COLLECTIONS.RECS, String(id)));
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
   }
 }
 
 export async function saveSchedToFirestore(s: ScheduleItem) {
-  const path = `scheds/${s.id}`;
+  const path = `${COLLECTIONS.SCHEDS}/${s.id}`;
   try {
-    await setDoc(doc(db, 'scheds', String(s.id)), cleanForFirestore(s));
+    await setDoc(doc(db, COLLECTIONS.SCHEDS, String(s.id)), cleanForFirestore(s));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
 }
 
 export async function deleteSchedFromFirestore(id: number) {
-  const path = `scheds/${id}`;
+  const path = `${COLLECTIONS.SCHEDS}/${id}`;
   try {
-    await deleteDoc(doc(db, 'scheds', String(id)));
+    await deleteDoc(doc(db, COLLECTIONS.SCHEDS, String(id)));
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
   }
 }
 
 export async function saveReportToFirestore(rep: DutyReport) {
-  const path = `reports/${rep.id}`;
+  const path = `${COLLECTIONS.REPORTS}/${rep.id}`;
   try {
-    await setDoc(doc(db, 'reports', String(rep.id)), cleanForFirestore(rep));
+    await setDoc(doc(db, COLLECTIONS.REPORTS, String(rep.id)), cleanForFirestore(rep));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
 }
 
 export async function deleteReportFromFirestore(id: number) {
-  const path = `reports/${id}`;
+  const path = `${COLLECTIONS.REPORTS}/${id}`;
   try {
-    await deleteDoc(doc(db, 'reports', String(id)));
+    await deleteDoc(doc(db, COLLECTIONS.REPORTS, String(id)));
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
   }
 }
 
 export async function saveSettingsToFirestore(settings: { beds: number; rooms?: string[]; insulins?: string[]; doctors?: string[] }) {
-  const path = 'settings/1';
+  const path = `${COLLECTIONS.SETTINGS}/1`;
   try {
-    await setDoc(doc(db, 'settings', '1'), cleanForFirestore(settings), { merge: true });
+    await setDoc(doc(db, COLLECTIONS.SETTINGS, '1'), cleanForFirestore(settings), { merge: true });
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
 }
 
 export async function saveGlucoseToFirestore(g: GlucoseRecord) {
-  const path = `glucose_records/${g.id}`;
+  const path = `${COLLECTIONS.GLUCOSE}/${g.id}`;
   try {
-    await setDoc(doc(db, 'glucose_records', String(g.id)), cleanForFirestore(g));
+    await setDoc(doc(db, COLLECTIONS.GLUCOSE, String(g.id)), cleanForFirestore(g));
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
 }
 
 export async function deleteGlucoseFromFirestore(id: number) {
-  const path = `glucose_records/${id}`;
+  const path = `${COLLECTIONS.GLUCOSE}/${id}`;
   try {
-    await deleteDoc(doc(db, 'glucose_records', String(id)));
+    await deleteDoc(doc(db, COLLECTIONS.GLUCOSE, String(id)));
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
   }

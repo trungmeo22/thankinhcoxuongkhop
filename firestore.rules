@@ -2,6 +2,30 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /cxk_patients/{patientId} {
+      allow read, write: if true;
+    }
+
+    match /cxk_recs/{recId} {
+      allow read, write: if true;
+    }
+
+    match /cxk_glucose_records/{recordId} {
+      allow read, write: if true;
+    }
+
+    match /cxk_scheds/{schedId} {
+      allow read, write: if true;
+    }
+
+    match /cxk_reports/{reportId} {
+      allow read, write: if true;
+    }
+
+    match /cxk_settings/{settingId} {
+      allow read, write: if true;
+    }
+
     match /patients/{patientId} {
       allow read, write: if true;
     }

@@ -89,7 +89,8 @@ export interface AppStateData {
   doctors?: string[];
 }
 
-const LOCAL_STORAGE_KEY = 'cxk_local_database_v2';
+const LOCAL_STORAGE_KEY = 'cxk_local_database_v3';
+const LEGACY_STORAGE_KEY = 'cxk_local_database_v2';
 const LOCAL_PW_KEY = 'cxk_local_auth_password';
 const LOCAL_SESSION_KEY = 'cxk_local_authenticated';
 
@@ -115,13 +116,13 @@ export function setLocalAuthenticated(auth: boolean) {
 
 export function getInitialLocalData(): AppStateData {
   try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed.patients)) {
-        // Filter out any lingering demo mockup patients by name
+        // Filter out demo mockup patients and any patients from other hospital departments (e.g., room 8xx)
         const cleanPatients = parsed.patients.filter(
-          (p: Patient) => p && !DEMO_PATIENT_NAMES.has(p.name)
+          (p: Patient) => p && !DEMO_PATIENT_NAMES.has(p.name) && (!p.room || !String(p.room).includes('8'))
         );
         const cleanRecs = Array.isArray(parsed.recs)
           ? parsed.recs.filter((r: VitalRecord) => r.pid > 27)
@@ -129,14 +130,15 @@ export function getInitialLocalData(): AppStateData {
         const cleanScheds = Array.isArray(parsed.scheds)
           ? parsed.scheds.filter((s: ScheduleItem) => s.patientId > 27)
           : [];
+        // Strictly filter out reports from other departments (e.g. old report 1769316592686 from 10/1)
         const cleanReports = Array.isArray(parsed.reports)
-          ? parsed.reports.filter((rep: DutyReport) => rep.id !== 1)
+          ? parsed.reports.filter((rep: DutyReport) => rep.id !== 1 && rep.id !== 1769316592686 && rep.date !== '2026-01-25')
           : [];
         const cleanGlucose = Array.isArray(parsed.glucoseRecords)
           ? parsed.glucoseRecords
           : [];
 
-        if (!parsed.rooms || !parsed.rooms.length) {
+        if (!parsed.rooms || !parsed.rooms.length || parsed.rooms.some((r: string) => r.includes('8'))) {
           parsed.rooms = ['P.301', 'P.302', 'P.303', 'P.304', 'P.305', 'P.306'];
         }
 
@@ -148,17 +150,19 @@ export function getInitialLocalData(): AppStateData {
           ? parsed.doctors
           : [...DEFAULT_DOCTORS];
 
-        return {
+        const result: AppStateData = {
           patients: cleanPatients,
           recs: cleanRecs,
           scheds: cleanScheds,
           reports: cleanReports,
           glucoseRecords: cleanGlucose,
-          beds: parsed.beds || 30,
+          beds: parsed.beds && parsed.beds <= 40 ? parsed.beds : 30,
           rooms: parsed.rooms,
           insulins: cleanInsulins,
           doctors: cleanDoctors,
         };
+        saveLocalData(result);
+        return result;
       }
     }
   } catch (e) {

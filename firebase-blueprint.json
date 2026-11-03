@@ -136,29 +136,53 @@
     }
   },
   "firestore": {
+    "/cxk_patients/{patientId}": {
+      "schema": "Patient",
+      "description": "Patients collection (Rheumatology isolated)"
+    },
+    "/cxk_recs/{recId}": {
+      "schema": "VitalRecord",
+      "description": "Vital records collection (Rheumatology isolated)"
+    },
+    "/cxk_glucose_records/{recordId}": {
+      "schema": "GlucoseRecord",
+      "description": "Blood sugar records collection (Rheumatology isolated)"
+    },
+    "/cxk_scheds/{schedId}": {
+      "schema": "ScheduleItem",
+      "description": "Procedures schedule collection (Rheumatology isolated)"
+    },
+    "/cxk_reports/{reportId}": {
+      "schema": "DutyReport",
+      "description": "Duty reports collection (Rheumatology isolated)"
+    },
+    "/cxk_settings/{settingId}": {
+      "schema": "Setting",
+      "description": "App settings collection (Rheumatology isolated)"
+    },
     "/patients/{patientId}": {
       "schema": "Patient",
-      "description": "Patients collection"
+      "description": "Legacy / shared patients collection"
     },
     "/recs/{recId}": {
       "schema": "VitalRecord",
-      "description": "Vital records collection"
+      "description": "Legacy / shared vital records collection"
     },
     "/glucose_records/{recordId}": {
       "schema": "GlucoseRecord",
-      "description": "Blood sugar records collection"
+      "description": "Legacy / shared blood sugar records collection"
     },
     "/scheds/{schedId}": {
       "schema": "ScheduleItem",
-      "description": "Procedures schedule collection"
+      "description": "Legacy / shared procedures schedule collection"
     },
     "/reports/{reportId}": {
       "schema": "DutyReport",
-      "description": "Duty reports collection"
+      "description": "Legacy / shared duty reports collection"
     },
     "/settings/{settingId}": {
       "schema": "Setting",
-      "description": "App settings collection"
+      "description": "Legacy / shared app settings collection"
     }
   }
 }
