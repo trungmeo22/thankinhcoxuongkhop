@@ -190,8 +190,7 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
   const handleCopyVitalsReport = () => {
     if (!groupedVitalsPatients.length) return;
     const lines = [
-      `BÁO CÁO DẤU HIỆU SINH TỒN - KHOA CƠ XƯƠNG KHỚP`,
-      `Ngày: ${dmy(dStart)} (${WDL[new Date(dStart).getDay()]})`,
+      `Báo cáo DHST ngày ${dmy(dStart)}:`,
       `----------------------------------------`
     ];
 
@@ -211,9 +210,6 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
       lines.push(`${idx + 1}. P.${p.room} - ${p.name}${ageStr}:`);
       lines.push(...vitLines);
     });
-
-    lines.push(`----------------------------------------`);
-    lines.push(`Tổng cộng: ${groupedVitalsPatients.length} bệnh nhân (${totalVitalsCount} lượt đo)`);
 
     navigator.clipboard.writeText(lines.join('\n')).then(() => {
       setCopyToast('Đã sao chép danh sách DHST vào bộ nhớ tạm!');
@@ -365,18 +361,11 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
         <div className="bg-white rounded-2xl border-2 border-emerald-800/30 shadow-md overflow-hidden animate-in fade-in duration-150">
           {/* Header Báo Cáo Chụp Màn Hình */}
           <div className="bg-[#0F2F2A] text-white p-3 sm:p-4 flex items-center justify-between gap-2">
-            <div>
-              <div className="flex items-center gap-1.5">
-                <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
-                <h3 className="font-bold text-xs sm:text-sm tracking-wide uppercase text-emerald-100">
-                  BÁO CÁO DẤU HIỆU SINH TỒN - KHOA CKX
-                </h3>
-              </div>
-              <div className="text-[11px] sm:text-xs text-emerald-300 mt-0.5 flex items-center gap-2 flex-wrap">
-                <span>Ngày: <strong className="text-white">{dmy(dStart)}</strong> ({WDL[new Date(dStart).getDay()]})</span>
-                <span>·</span>
-                <span>Tổng: <strong className="text-white">{groupedVitalsPatients.length} BN ({totalVitalsCount} lượt đo)</strong></span>
-              </div>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
+              <h3 className="font-bold text-xs sm:text-sm tracking-wide text-white truncate">
+                Báo cáo DHST ngày {dmy(dStart)}
+              </h3>
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
@@ -485,9 +474,8 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
           )}
 
           {groupedVitalsPatients.length > 0 && (
-            <div className="px-3 py-1.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-[9.5px] text-gray-500">
-              <span>Mẹo: Chụp ảnh màn hình danh sách này để gửi báo cáo trực</span>
-              <span>Tổng: <strong>{groupedVitalsPatients.length}</strong> BN (<strong>{totalVitalsCount}</strong> lượt đo)</span>
+            <div className="px-3 py-1 bg-gray-50 border-t border-gray-100 text-center text-[9.5px] text-gray-400">
+              Đơn vị: Mạch (l/p) · HA (mmHg) · Nhiệt (°C) · SpO₂ (%) · NT (l/p)
             </div>
           )}
         </div>

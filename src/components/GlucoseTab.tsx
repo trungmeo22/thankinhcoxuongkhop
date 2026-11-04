@@ -222,15 +222,10 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
 
   const handleCopyGlucoseReport = () => {
     if (!groupedGlucosePatients.length) return;
-    const slotName =
-      reportSlot === '06:00' ? 'BÁO CÁO 6H' :
-      reportSlot === '11:00' ? 'BÁO CÁO 11H' :
-      reportSlot === '17:00' ? 'BÁO CÁO 17H' :
-      reportSlot === '21:00' ? 'BÁO CÁO 21H' : 'BÁO CÁO TOÀN BỘ';
+    const slotStr = reportSlot === 'all' ? 'toàn bộ' : reportSlot === '06:00' ? '6h' : reportSlot ? reportSlot.replace(':00', 'h') : '';
 
     const lines = [
-      `BÁO CÁO ĐƯỜNG HUYẾT - ĐƠN NGUYÊN CƠ XƯƠNG KHỚP`,
-      `Ngày: ${dmy(fromIso(reportDate))} (${slotName})`,
+      `Báo đường huyết ${slotStr ? `${slotStr} ` : ''}ngày ${dmy(fromIso(reportDate))}:`,
       `----------------------------------------`
     ];
 
@@ -245,9 +240,6 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
       }).join(' | ');
       lines.push(`${idx + 1}. P.${p.room} - ${p.name}${ageStr}: ${testsStr}`);
     });
-
-    lines.push(`----------------------------------------`);
-    lines.push(`Tổng cộng: ${groupedGlucosePatients.length} bệnh nhân (${totalTestsInSlot} lượt test)`);
 
     navigator.clipboard.writeText(lines.join('\n')).then(() => {
       setCopyToast('Đã sao chép danh sách báo cáo vào bộ nhớ tạm!');
@@ -381,22 +373,11 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
         <div className="bg-white rounded-2xl border-2 border-emerald-800/30 shadow-md overflow-hidden animate-in fade-in duration-150">
           {/* Header Báo Cáo Chụp Màn Hình */}
           <div className="bg-[#0F2F2A] text-white p-3 sm:p-4 flex items-center justify-between gap-2">
-            <div>
-              <div className="flex items-center gap-1.5">
-                <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
-                <h3 className="font-bold text-xs sm:text-sm tracking-wide uppercase text-emerald-100">
-                  BÁO CÁO ĐƯỜNG HUYẾT - ĐƠN NGUYÊN CKX
-                </h3>
-              </div>
-              <div className="text-[11px] sm:text-xs text-emerald-300 mt-0.5 flex items-center gap-2 flex-wrap">
-                <span>Ngày: <strong className="text-white">{dmy(fromIso(reportDate))}</strong></span>
-                <span>·</span>
-                <span className="font-bold text-white bg-emerald-700/70 px-1.5 py-0.5 rounded text-[10px] uppercase">
-                  {reportSlot === 'all' ? 'BÁO CÁO TOÀN BỘ' : reportSlot === '06:00' ? 'BÁO CÁO 6H' : `BÁO CÁO ${reportSlot.replace(':00', 'H')}`}
-                </span>
-                <span>·</span>
-                <span>Tổng: <strong className="text-white">{groupedGlucosePatients.length} BN ({totalTestsInSlot} lượt test)</strong></span>
-              </div>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
+              <h3 className="font-bold text-xs sm:text-sm tracking-wide text-white truncate">
+                Báo đường huyết {reportSlot === 'all' ? 'toàn bộ' : reportSlot === '06:00' ? '6h' : reportSlot ? reportSlot.replace(':00', 'h') : ''} ngày {dmy(fromIso(reportDate))}
+              </h3>
             </div>
 
             <div className="flex items-center gap-1.5 shrink-0">
@@ -518,9 +499,8 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
           )}
 
           {groupedGlucosePatients.length > 0 && (
-            <div className="px-3 py-1.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-[9.5px] text-gray-500">
-              <span>Đơn vị: mmol/L · Mẹo: Chụp ảnh màn hình danh sách này để gửi báo cáo</span>
-              <span>Tổng: <strong>{groupedGlucosePatients.length}</strong> BN (<strong>{totalTestsInSlot}</strong> lượt)</span>
+            <div className="px-3 py-1 bg-gray-50 border-t border-gray-100 text-center text-[9.5px] text-gray-400">
+              Đơn vị: mmol/L
             </div>
           )}
         </div>
