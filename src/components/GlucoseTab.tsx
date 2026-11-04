@@ -21,7 +21,11 @@ import {
   AlertTriangle,
   History,
   FileText,
-  ArrowLeft
+  ArrowLeft,
+  Copy,
+  Check,
+  FileSpreadsheet,
+  Camera
 } from 'lucide-react';
 
 interface GlucoseTabProps {
@@ -54,6 +58,12 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
   const [editingRecord, setEditingRecord] = useState<GlucoseRecord | null>(null);
   const [preselectedPid, setPreselectedPid] = useState<number | undefined>(undefined);
   const [preselectedDate, setPreselectedDate] = useState<string | undefined>(undefined);
+
+  // Report Filter State: null = default detailed view, or 'all', '06:00', '11:00', '17:00', '21:00'
+  type ReportSlot = 'all' | '06:00' | '11:00' | '17:00' | '21:00' | null;
+  const [reportSlot, setReportSlot] = useState<ReportSlot>(null);
+  const [reportDate, setReportDate] = useState<string>(todayStr);
+  const [copyToast, setCopyToast] = useState<string | null>(null);
 
   // Group all glucose records by patientId
   const recordsByPatient = useMemo(() => {
@@ -147,6 +157,96 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
     return dmy(fromIso(dateStr));
   };
 
+  // Compute report records for the selected reportSlot and reportDate
+  const reportItems = useMemo(() => {
+    if (!reportSlot) return [];
+
+    // Find all records on reportDate
+    const dayRecords = glucoseRecords.filter((r) => r.date === reportDate);
+
+    // Filter by slot
+    const slotFiltered = dayRecords.filter((r) => {
+      if (reportSlot === 'all') return true;
+      if (reportSlot === '06:00') {
+        return r.slotType === '06:00' || r.time?.startsWith('06') || r.time === '6:00' || r.time === '06:00';
+      }
+      if (reportSlot === '11:00') {
+        return r.slotType === '11:00' || r.time?.startsWith('11') || r.time === '11:00';
+      }
+      if (reportSlot === '17:00') {
+        return r.slotType === '17:00' || r.time?.startsWith('17') || r.time === '17:00';
+      }
+      if (reportSlot === '21:00') {
+        return r.slotType === '21:00' || r.time?.startsWith('21') || r.time === '21:00';
+      }
+      return false;
+    });
+
+    // Attach patient info
+    const items = slotFiltered.map((r) => {
+      const patient = patients.find((p) => p.id === r.patientId);
+      return {
+        record: r,
+        patient: patient || ({ id: r.patientId, name: 'Bệnh nhân', room: '?', age: '' } as Patient),
+      };
+    });
+
+    // Apply search query if present
+    const qClean = q.trim().toLowerCase();
+    const searchedItems = qClean
+      ? items.filter((item) => {
+          return (
+            item.patient.name.toLowerCase().includes(qClean) ||
+            item.patient.room.toLowerCase().includes(qClean) ||
+            (item.record.note && item.record.note.toLowerCase().includes(qClean))
+          );
+        })
+      : items;
+
+    // Sort by room numeric, then by time
+    return searchedItems.sort((a, b) => {
+      const roomComp = String(a.patient.room).localeCompare(String(b.patient.room), 'vi', { numeric: true });
+      if (roomComp !== 0) return roomComp;
+      return a.record.time.localeCompare(b.record.time);
+    });
+  }, [glucoseRecords, reportSlot, reportDate, patients, q]);
+
+  const handleCopyGlucoseReport = () => {
+    if (!reportItems.length) return;
+    const slotName =
+      reportSlot === '06:00' ? 'MỐC 6H' :
+      reportSlot === '11:00' ? 'MỐC 11H' :
+      reportSlot === '17:00' ? 'MỐC 17H' :
+      reportSlot === '21:00' ? 'MỐC 21H' : 'TOÀN BỘ CÁC MỐC';
+
+    const lines = [
+      `BÁO CÁO ĐƯỜNG HUYẾT - ĐƠN NGUYÊN CƠ XƯƠNG KHỚP`,
+      `Ngày: ${dmy(fromIso(reportDate))} (${slotName})`,
+      `----------------------------------------`
+    ];
+
+    reportItems.forEach((item, idx) => {
+      const p = item.patient;
+      const r = item.record;
+      const ageStr = p.age ? ` (${p.age}t)` : '';
+      const timeStr = reportSlot === 'all' ? ` [${r.time}]` : '';
+      const insStr = r.insulinDose ? ` - 💉 ${r.insulinType ? `${r.insulinType} ` : ''}${r.insulinDose}` : '';
+      const noteStr = r.note ? ` (${r.note})` : '';
+      lines.push(`${idx + 1}. P.${p.room} - ${p.name}${ageStr}${timeStr}: ${r.glucoseValue} mmol/L${insStr}${noteStr}`);
+    });
+
+    lines.push(`----------------------------------------`);
+    lines.push(`Tổng cộng: ${reportItems.length} kết quả`);
+
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setCopyToast('Đã sao chép danh sách báo cáo vào bộ nhớ tạm!');
+      setTimeout(() => setCopyToast(null), 3000);
+    }).catch(() => {
+      setCopyToast('Không thể tự động sao chép.');
+      setTimeout(() => setCopyToast(null), 3000);
+    });
+  };
+
   return (
     <div className="space-y-4">
       {/* Search, Filter & Action Bar */}
@@ -201,21 +301,254 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
           </button>
         </div>
 
-        {/* Subline: Stats */}
-        <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#EEF0ED] text-xs text-gray-500">
-          <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs">
-            <span>
-              Bệnh nhân test: <strong className="text-[#0F2F2A]">{filteredPatients.length}</strong>
+        {/* Bộ lọc danh sách báo cáo chụp màn hình */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2.5 border-t border-[#EEF0ED]">
+          {/* Slot Pills */}
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
+            <span className="text-[11px] font-bold text-gray-600 shrink-0 mr-1 flex items-center gap-1">
+              <Camera className="w-3.5 h-3.5 text-[#0E6B5E]" />
+              Báo cáo:
             </span>
-            <span>·</span>
-            <span>
-              Tổng lượt: <strong className="text-emerald-800">{totalTestsCount}</strong>
-            </span>
+            <button
+              type="button"
+              onClick={() => setReportSlot(null)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                reportSlot === null
+                  ? 'bg-[#0F2F2A] text-white shadow-xs'
+                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+              }`}
+              title="Xem danh sách chi tiết từng bệnh nhân"
+            >
+              Chi tiết
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportSlot('all')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                reportSlot === 'all'
+                  ? 'bg-[#0E6B5E] text-white shadow-xs'
+                  : 'bg-emerald-50 hover:bg-emerald-100 text-[#0E6B5E]'
+              }`}
+              title="Xem báo cáo toàn bộ mốc trong ngày"
+            >
+              Toàn bộ
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportSlot('06:00')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                reportSlot === '06:00'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'bg-amber-50 hover:bg-amber-100 text-amber-800'
+              }`}
+            >
+              6 giờ
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportSlot('11:00')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                reportSlot === '11:00'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'bg-amber-50 hover:bg-amber-100 text-amber-800'
+              }`}
+            >
+              11h
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportSlot('17:00')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                reportSlot === '17:00'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'bg-amber-50 hover:bg-amber-100 text-amber-800'
+              }`}
+            >
+              17h
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportSlot('21:00')}
+              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                reportSlot === '21:00'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'bg-amber-50 hover:bg-amber-100 text-amber-800'
+              }`}
+            >
+              21h
+            </button>
+          </div>
+
+          {/* Ngày báo cáo & Thống kê */}
+          <div className="flex items-center justify-between sm:justify-end gap-2 text-xs shrink-0">
+            {reportSlot !== null ? (
+              <div className="flex items-center gap-1.5 bg-[#F3F4F1] px-2.5 py-1 rounded-xl border border-[#DDE1DC]">
+                <Calendar className="w-3.5 h-3.5 text-[#56615C] shrink-0" />
+                <input
+                  type="date"
+                  value={reportDate}
+                  onChange={(e) => setReportDate(e.target.value)}
+                  className="bg-transparent text-xs font-semibold text-[#17201D] focus:outline-none cursor-pointer"
+                />
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 text-[11px] text-gray-500">
+                <span>
+                  Bệnh nhân test: <strong className="text-[#0F2F2A]">{filteredPatients.length}</strong>
+                </span>
+                <span>·</span>
+                <span>
+                  Tổng lượt: <strong className="text-emerald-800">{totalTestsCount}</strong>
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Patient Cards List */}
+      {/* Toast thông báo đã sao chép */}
+      {copyToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#0F2F2A] text-white px-4 py-2 rounded-xl shadow-lg flex items-center gap-2 text-xs font-semibold animate-in fade-in slide-in-from-bottom-2">
+          <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>{copyToast}</span>
+        </div>
+      )}
+
+      {/* CHẾ ĐỘ BÁO CÁO NHANH CHỤP MÀN HÌNH (KHI CHỌN MỐC GIỜ HOẶC TOÀN BỘ) */}
+      {reportSlot !== null ? (
+        <div className="bg-white rounded-2xl border-2 border-emerald-800/30 shadow-md overflow-hidden animate-in fade-in duration-150">
+          {/* Header Báo Cáo Chụp Màn Hình */}
+          <div className="bg-[#0F2F2A] text-white p-3 sm:p-4 flex items-center justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-1.5">
+                <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
+                <h3 className="font-bold text-xs sm:text-sm tracking-wide uppercase text-emerald-100">
+                  BÁO CÁO ĐƯỜNG HUYẾT - ĐƠN NGUYÊN CKX
+                </h3>
+              </div>
+              <div className="text-[11px] sm:text-xs text-emerald-300 mt-0.5 flex items-center gap-2 flex-wrap">
+                <span>Ngày: <strong className="text-white">{dmy(fromIso(reportDate))}</strong></span>
+                <span>·</span>
+                <span className="font-bold text-white bg-emerald-700/70 px-1.5 py-0.5 rounded text-[10px] uppercase">
+                  {reportSlot === 'all' ? 'TOÀN BỘ CÁC MỐC' : `MỐC ${reportSlot === '06:00' ? '6H' : reportSlot.replace(':00', 'H')}`}
+                </span>
+                <span>·</span>
+                <span>Tổng số: <strong className="text-white">{reportItems.length} ca</strong></span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleCopyGlucoseReport}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white text-[11px] font-bold shadow-xs transition-colors cursor-pointer active:scale-95 whitespace-nowrap"
+                title="Sao chép danh sách để gửi Zalo"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Sao chép Zalo</span>
+                <span className="sm:hidden">Sao chép</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setReportSlot(null)}
+                className="px-2.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-medium transition-colors cursor-pointer"
+                title="Đóng chế độ báo cáo"
+              >
+                ✕ Đóng
+              </button>
+            </div>
+          </div>
+
+          {/* Danh sách kết quả theo hàng ngang - xếp thứ tự dọc - chữ nhỏ gọn vừa hàng chụp ảnh */}
+          {!reportItems.length ? (
+            <div className="p-8 text-center text-xs text-gray-500 space-y-2">
+              <FileSpreadsheet className="w-8 h-8 text-gray-300 mx-auto" />
+              <p className="font-semibold text-gray-700">
+                Chưa có kết quả test đường huyết nào cho {reportSlot === 'all' ? 'ngày này' : `mốc ${reportSlot}`} ({dmy(fromIso(reportDate))}).
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setPreselectedPid(undefined);
+                  setPreselectedDate(reportDate);
+                  setDeptModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-[#0E6B5E] text-white text-xs font-bold active:scale-95 transition-all"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Thêm kết quả ngay</span>
+              </button>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100 bg-white">
+              {reportItems.map((item, idx) => {
+                const p = item.patient;
+                const r = item.record;
+                return (
+                  <div
+                    key={r.id || `${r.patientId}-${r.time}-${idx}`}
+                    className="flex items-center justify-between gap-1.5 px-2.5 py-1.5 hover:bg-emerald-50/40 transition-colors whitespace-nowrap text-[10px] sm:text-[10.5px]"
+                  >
+                    {/* STT & Phòng & Tên & Tuổi */}
+                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                      <span className="text-gray-400 font-mono text-[9px] w-4 shrink-0 text-right">
+                        {idx + 1}.
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded bg-[#0F2F2A] text-white font-bold text-[9px] shrink-0">
+                        P.{p.room}
+                      </span>
+                      <strong className="text-gray-900 font-bold truncate max-w-[105px] sm:max-w-[145px]">
+                        {p.name}
+                      </strong>
+                      {p.age && (
+                        <span className="text-gray-500 font-medium shrink-0 text-[9px]">
+                          ({p.age}t)
+                        </span>
+                      )}
+                      {reportSlot === 'all' && (
+                        <span className="text-gray-400 font-mono text-[9px] shrink-0 ml-0.5">
+                          [{r.time}]
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Chỉ số đường huyết & Insulin & Ghi chú */}
+                    <div className="flex items-center gap-1.5 shrink-0 ml-auto">
+                      {/* Đường huyết Badge */}
+                      <span className={`px-1.5 py-0.5 rounded border font-black text-[10.5px] shrink-0 ${getGlucoseBadgeColor(r.glucoseValue)}`}>
+                        {r.glucoseValue} <span className="font-normal text-[8.5px]">mmol/L</span>
+                      </span>
+
+                      {/* Insulin nếu có */}
+                      {r.insulinDose && (
+                        <span className="px-1.5 py-0.5 rounded bg-sky-50 text-sky-800 font-bold border border-sky-200 text-[9.5px] shrink-0 flex items-center gap-0.5">
+                          <span>💉</span>
+                          <span>{r.insulinType ? `${r.insulinType} ` : ''}{r.insulinDose}UI</span>
+                        </span>
+                      )}
+
+                      {/* Ghi chú nếu có */}
+                      {r.note && (
+                        <span className="text-gray-500 italic truncate max-w-[90px] sm:max-w-[140px] text-[9.5px]" title={r.note}>
+                          ({r.note})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {reportItems.length > 0 && (
+            <div className="px-3 py-1.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-[9.5px] text-gray-500">
+              <span>Đơn vị: mmol/L · Mẹo: Chụp ảnh màn hình để gửi báo cáo</span>
+              <span>Tổng: <strong>{reportItems.length}</strong> kết quả</span>
+            </div>
+          )}
+        </div>
+      ) : (
+      /* Patient Cards List (Chế độ chi tiết) */
       <div className="space-y-3">
         {!filteredPatients.length ? (
           <div className="p-8 bg-white rounded-2xl border border-[#DDE1DC] text-center text-xs text-gray-500 space-y-2">
@@ -371,6 +704,7 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
           })
         )}
       </div>
+      )}
 
       {/* Modal Thêm mới cho toàn khoa / cho bệnh nhân */}
       {deptModalOpen && (
