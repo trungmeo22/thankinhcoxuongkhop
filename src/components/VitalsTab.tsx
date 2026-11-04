@@ -104,39 +104,38 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
     a.localeCompare(b, 'vi', { numeric: true })
   );
 
-  // Memoized daily vitals entries for the screenshot-ready quick report
-  const dailyVitalsList = useMemo(() => {
-    type DailyItem = {
+  // Memoized daily vitals grouped by patient for screenshot-ready quick report (chỉ hiện DHST, không hiện diễn biến)
+  const groupedVitalsPatients = useMemo(() => {
+    type VitalEntry = {
       id: string | number;
-      patient: Patient;
       at: number;
       pulse?: string;
       bp?: string;
       temp?: string;
       spo2?: string;
       rr?: string;
-      note?: string;
       abn?: boolean;
       isAdmit?: boolean;
     };
 
-    const items: DailyItem[] = [];
+    const map = new Map<number, { patient: Patient; records: VitalEntry[] }>();
 
     // All vitals from recs in [dStart, dEnd)
     recs.forEach((r) => {
       if (r.at >= dStart && r.at < dEnd) {
         const patient = patients.find((p) => p.id === r.pid);
         if (patient) {
-          items.push({
+          if (!map.has(patient.id)) {
+            map.set(patient.id, { patient, records: [] });
+          }
+          map.get(patient.id)!.records.push({
             id: r.id,
-            patient,
             at: r.at,
             pulse: r.pulse,
             bp: r.bp,
             temp: r.temp,
             spo2: r.spo2,
             rr: r.rr,
-            note: r.note,
             abn: r.abn,
             isAdmit: false,
           });
@@ -144,66 +143,77 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
       }
     });
 
-    // Add admission records on this day
+    // Add admission records on this day if having vitals
     patients.forEach((p) => {
       if (p.admitAt >= dStart && p.admitAt < dEnd && (hasVit(p.av) || p.pulse || p.bp)) {
-        items.push({
+        if (!map.has(p.id)) {
+          map.set(p.id, { patient: p, records: [] });
+        }
+        map.get(p.id)!.records.push({
           id: `admit-${p.id}`,
-          patient: p,
           at: p.admitAt,
           pulse: p.av?.pulse || p.pulse,
           bp: p.av?.bp || p.bp,
           temp: p.av?.temp || p.temp,
           spo2: p.av?.spo2 || p.spo2,
           rr: p.av?.rr || p.rr,
-          note: p.note,
           abn: false,
           isAdmit: true,
         });
       }
     });
 
+    // Convert map to array and sort records by time within patient
+    const groups = Array.from(map.values()).map((g) => {
+      g.records.sort((a, b) => a.at - b.at);
+      return g;
+    });
+
     // Search query filter
     const searched = qClean
-      ? items.filter((item) => {
-          const matchTarget = `${item.patient.name} ${item.patient.room} ${item.patient.doctor || ''} ${item.note || ''}`;
+      ? groups.filter((g) => {
+          const matchTarget = `${g.patient.name} ${g.patient.room} ${g.patient.doctor || ''}`;
           return fold(matchTarget).includes(qClean);
         })
-      : items;
+      : groups;
 
-    // Sort by Room (numeric), then by time at
+    // Sort by Room (numeric)
     return searched.sort((a, b) => {
-      const roomComp = String(a.patient.room).localeCompare(String(b.patient.room), 'vi', { numeric: true });
-      if (roomComp !== 0) return roomComp;
-      return a.at - b.at;
+      return String(a.patient.room).localeCompare(String(b.patient.room), 'vi', { numeric: true });
     });
   }, [recs, patients, dStart, dEnd, qClean]);
 
+  const totalVitalsCount = useMemo(() => {
+    return groupedVitalsPatients.reduce((sum, g) => sum + g.records.length, 0);
+  }, [groupedVitalsPatients]);
+
   const handleCopyVitalsReport = () => {
-    if (!dailyVitalsList.length) return;
+    if (!groupedVitalsPatients.length) return;
     const lines = [
-      `BÁO CÁO DHST & DIỄN BIẾN - KHOA CƠ XƯƠNG KHỚP`,
+      `BÁO CÁO DẤU HIỆU SINH TỒN - KHOA CƠ XƯƠNG KHỚP`,
       `Ngày: ${dmy(dStart)} (${WDL[new Date(dStart).getDay()]})`,
       `----------------------------------------`
     ];
 
-    dailyVitalsList.forEach((item, idx) => {
-      const p = item.patient;
+    groupedVitalsPatients.forEach((g, idx) => {
+      const p = g.patient;
       const ageStr = p.age ? ` (${p.age}t)` : '';
-      const vitParts: string[] = [];
-      if (item.pulse) vitParts.push(`M:${item.pulse}`);
-      if (item.bp) vitParts.push(`HA:${item.bp}`);
-      if (item.temp) vitParts.push(`T:${item.temp}°`);
-      if (item.spo2) vitParts.push(`SpO2:${item.spo2}%`);
-      if (item.rr) vitParts.push(`NT:${item.rr}`);
-      const vitStr = vitParts.length ? ` [${vitParts.join(' ')}]` : '';
-      const noteStr = item.note ? ` (${item.note})` : '';
-      const tagStr = item.isAdmit ? ` [Vào viện]` : '';
-      lines.push(`${idx + 1}. P.${p.room} - ${p.name}${ageStr} ${hm(item.at)}${tagStr}:${vitStr}${noteStr}`);
+      const vitLines = g.records.map((r) => {
+        const vitParts: string[] = [];
+        if (r.pulse) vitParts.push(`M: ${r.pulse}`);
+        if (r.bp) vitParts.push(`HA: ${r.bp}`);
+        if (r.temp) vitParts.push(`T: ${r.temp}°`);
+        if (r.spo2) vitParts.push(`SpO2: ${r.spo2}%`);
+        if (r.rr) vitParts.push(`NT: ${r.rr}`);
+        const tagStr = r.isAdmit ? ' [Vào viện]' : '';
+        return `   + [${hm(r.at)}]${tagStr}: ${vitParts.join(' | ')}`;
+      });
+      lines.push(`${idx + 1}. P.${p.room} - ${p.name}${ageStr}:`);
+      lines.push(...vitLines);
     });
 
     lines.push(`----------------------------------------`);
-    lines.push(`Tổng cộng: ${dailyVitalsList.length} lượt ghi nhận`);
+    lines.push(`Tổng cộng: ${groupedVitalsPatients.length} bệnh nhân (${totalVitalsCount} lượt đo)`);
 
     navigator.clipboard.writeText(lines.join('\n')).then(() => {
       setCopyToast('Đã sao chép danh sách DHST vào bộ nhớ tạm!');
@@ -350,7 +360,7 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
         </div>
       )}
 
-      {/* CHẾ ĐỘ BÁO CÁO NHANH TRONG NGÀY (CHỤP MÀN HÌNH) */}
+      {/* CHẾ ĐỘ BÁO CÁO NHANH TRONG NGÀY (GỘP THEO BỆNH NHÂN - CHỈ HIỆN SỐ LIỆU DHST) */}
       {isQuickDailyReport ? (
         <div className="bg-white rounded-2xl border-2 border-emerald-800/30 shadow-md overflow-hidden animate-in fade-in duration-150">
           {/* Header Báo Cáo Chụp Màn Hình */}
@@ -359,13 +369,13 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
               <div className="flex items-center gap-1.5">
                 <Camera className="w-4 h-4 text-emerald-400 shrink-0" />
                 <h3 className="font-bold text-xs sm:text-sm tracking-wide uppercase text-emerald-100">
-                  BÁO CÁO DHST & DIỄN BIẾN - KHOA CKX
+                  BÁO CÁO DẤU HIỆU SINH TỒN - KHOA CKX
                 </h3>
               </div>
               <div className="text-[11px] sm:text-xs text-emerald-300 mt-0.5 flex items-center gap-2 flex-wrap">
                 <span>Ngày: <strong className="text-white">{dmy(dStart)}</strong> ({WDL[new Date(dStart).getDay()]})</span>
                 <span>·</span>
-                <span>Tổng cộng: <strong className="text-white">{dailyVitalsList.length} lượt</strong></span>
+                <span>Tổng: <strong className="text-white">{groupedVitalsPatients.length} BN ({totalVitalsCount} lượt đo)</strong></span>
               </div>
             </div>
 
@@ -391,12 +401,12 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
             </div>
           </div>
 
-          {/* Danh sách kết quả theo hàng ngang - xếp thứ tự dọc - chữ nhỏ gọn vừa hàng chụp ảnh */}
-          {!dailyVitalsList.length ? (
+          {/* Danh sách kết quả: Gộp các lần đo của cùng 1 ca lại, tên hiện rõ ràng, chỉ hiện số liệu DHST */}
+          {!groupedVitalsPatients.length ? (
             <div className="p-8 text-center text-xs text-gray-500 space-y-2">
               <FileSpreadsheet className="w-8 h-8 text-gray-300 mx-auto" />
               <p className="font-semibold text-gray-700">
-                Chưa có lượt đo DHST hoặc diễn biến nào trong ngày {dmy(dStart)}.
+                Chưa có lượt đo DHST nào trong ngày {dmy(dStart)}.
               </p>
               <button
                 type="button"
@@ -409,69 +419,64 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
             </div>
           ) : (
             <div className="divide-y divide-gray-100 bg-white">
-              {dailyVitalsList.map((item, idx) => {
-                const p = item.patient;
-                const hasVitals = item.pulse || item.bp || item.temp || item.spo2;
+              {groupedVitalsPatients.map((group, idx) => {
+                const p = group.patient;
                 return (
                   <div
-                    key={item.id}
-                    className={`flex items-center justify-between gap-1.5 px-2.5 py-1.5 hover:bg-emerald-50/40 transition-colors whitespace-nowrap text-[10px] sm:text-[10.5px] ${
-                      item.abn ? 'bg-amber-50/40' : ''
-                    }`}
+                    key={p.id}
+                    className="p-2 sm:p-2.5 hover:bg-emerald-50/30 transition-colors"
                   >
-                    {/* STT & Phòng & Tên & Tuổi & Giờ */}
-                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                      <span className="text-gray-400 font-mono text-[9px] w-4 shrink-0 text-right">
-                        {idx + 1}.
-                      </span>
-                      <span className="px-1.5 py-0.5 rounded bg-[#0F2F2A] text-white font-bold text-[9px] shrink-0">
-                        P.{p.room}
-                      </span>
-                      <strong className="text-gray-900 font-bold truncate max-w-[95px] sm:max-w-[135px]">
-                        {p.name}
-                      </strong>
-                      {p.age && (
-                        <span className="text-gray-500 font-medium shrink-0 text-[9px]">
-                          ({p.age}t)
+                    {/* Hàng 1: STT, Số phòng, TÊN BỆNH NHÂN (To, rõ ràng, không bị che/cắt), Tuổi */}
+                    <div className="flex items-center justify-between gap-2 mb-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-gray-400 font-mono text-[9.5px] w-3.5 shrink-0 text-right">
+                          {idx + 1}.
                         </span>
-                      )}
-                      <span className="text-gray-500 font-mono text-[9px] shrink-0">
-                        {hm(item.at)}
-                      </span>
-                      {item.isAdmit && (
-                        <span className="px-1 py-0.2 rounded bg-blue-100 text-blue-800 text-[8.5px] font-bold shrink-0">
-                          Vào viện
+                        <span className="px-1.5 py-0.5 rounded bg-[#0F2F2A] text-white font-bold text-[9px] shrink-0">
+                          P.{p.room}
                         </span>
-                      )}
+                        <strong className="text-xs sm:text-[13px] font-black text-gray-900 tracking-tight">
+                          {p.name}
+                        </strong>
+                        {p.age && (
+                          <span className="text-[10px] text-gray-500 font-medium shrink-0">
+                            ({p.age}t)
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[9px] font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded shrink-0">
+                        {group.records.length} lần đo
+                      </span>
                     </div>
 
-                    {/* Chỉ số DHST & Diễn biến */}
-                    <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                      {/* Vitals indicators */}
-                      {hasVitals && (
-                        <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded border text-[9.5px] font-semibold shrink-0 ${
-                          item.abn
-                            ? 'bg-amber-100 border-amber-300 text-amber-900'
-                            : 'bg-gray-50 border-gray-200 text-gray-800'
-                        }`}>
-                          {item.pulse && <span>M:<strong>{item.pulse}</strong></span>}
-                          {item.bp && <span>HA:<strong>{item.bp}</strong></span>}
-                          {item.temp && <span>T:<strong>{item.temp}°</strong></span>}
-                          {item.spo2 && <span>SpO2:<strong>{item.spo2}%</strong></span>}
-                        </div>
-                      )}
-
-                      {/* Diễn biến / Note nếu có */}
-                      {item.note && (
-                        <span
-                          className={`italic truncate max-w-[100px] sm:max-w-[170px] text-[9.5px] ${
-                            item.abn ? 'text-amber-900 font-medium' : 'text-gray-600'
-                          }`}
-                          title={item.note}
+                    {/* Hàng 2+: Các lần đo DHST của ca này được gộp chung dưới tên (CHỈ HIỆN SỐ LIỆU DHST, KHÔNG HIỆN DIỄN BIẾN / XỬ TRÍ) */}
+                    <div className="space-y-1 pl-5 sm:pl-6">
+                      {group.records.map((r, rIdx) => (
+                        <div
+                          key={rIdx}
+                          className="flex items-center gap-1.5 text-[10px] sm:text-[10.5px] whitespace-nowrap"
                         >
-                          ({item.note})
-                        </span>
-                      )}
+                          <span className="text-gray-500 font-mono text-[9.5px] shrink-0 font-bold bg-gray-100 px-1 py-0.2 rounded">
+                            {hm(r.at)}
+                          </span>
+                          {r.isAdmit && (
+                            <span className="px-1 py-0.2 rounded bg-blue-100 text-blue-800 text-[8.5px] font-bold shrink-0">
+                              Vào viện
+                            </span>
+                          )}
+                          <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded border text-[10px] font-semibold shrink-0 ${
+                            r.abn
+                              ? 'bg-amber-50 border-amber-300 text-amber-900'
+                              : 'bg-gray-50 border-gray-200 text-gray-800'
+                          }`}>
+                            {r.pulse && <span>M: <strong className="text-black">{r.pulse}</strong></span>}
+                            {r.bp && <span>HA: <strong className="text-black">{r.bp}</strong></span>}
+                            {r.temp && <span>T: <strong className="text-black">{r.temp}°</strong></span>}
+                            {r.spo2 && <span>SpO₂: <strong className="text-black">{r.spo2}%</strong></span>}
+                            {r.rr && <span>NT: <strong className="text-black">{r.rr}</strong></span>}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 );
@@ -479,10 +484,10 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
             </div>
           )}
 
-          {dailyVitalsList.length > 0 && (
+          {groupedVitalsPatients.length > 0 && (
             <div className="px-3 py-1.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-[9.5px] text-gray-500">
               <span>Mẹo: Chụp ảnh màn hình danh sách này để gửi báo cáo trực</span>
-              <span>Tổng: <strong>{dailyVitalsList.length}</strong> lượt</span>
+              <span>Tổng: <strong>{groupedVitalsPatients.length}</strong> BN (<strong>{totalVitalsCount}</strong> lượt đo)</span>
             </div>
           )}
         </div>

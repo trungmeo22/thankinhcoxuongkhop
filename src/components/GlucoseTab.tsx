@@ -157,8 +157,8 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
     return dmy(fromIso(dateStr));
   };
 
-  // Compute report records for the selected reportSlot and reportDate
-  const reportItems = useMemo(() => {
+  // Grouped glucose patients for report: Gộp các lần test của cùng 1 bệnh nhân lại với nhau
+  const groupedGlucosePatients = useMemo(() => {
     if (!reportSlot) return [];
 
     // Find all records on reportDate
@@ -182,42 +182,51 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
       return false;
     });
 
-    // Attach patient info
-    const items = slotFiltered.map((r) => {
-      const patient = patients.find((p) => p.id === r.patientId);
-      return {
-        record: r,
-        patient: patient || ({ id: r.patientId, name: 'Bệnh nhân', room: '?', age: '' } as Patient),
-      };
+    // Group records by patientId
+    const map = new Map<number, GlucoseRecord[]>();
+    slotFiltered.forEach((r) => {
+      if (!map.has(r.patientId)) map.set(r.patientId, []);
+      map.get(r.patientId)!.push(r);
+    });
+
+    // Attach patient info and sort records within patient
+    const groups: Array<{ patient: Patient; records: GlucoseRecord[] }> = [];
+    map.forEach((records, pid) => {
+      const patient = patients.find((p) => p.id === pid) || ({ id: pid, name: 'Bệnh nhân', room: '?', age: '' } as Patient);
+      records.sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+      groups.push({ patient, records });
     });
 
     // Apply search query if present
     const qClean = q.trim().toLowerCase();
-    const searchedItems = qClean
-      ? items.filter((item) => {
+    const filteredGroups = qClean
+      ? groups.filter((g) => {
           return (
-            item.patient.name.toLowerCase().includes(qClean) ||
-            item.patient.room.toLowerCase().includes(qClean) ||
-            (item.record.note && item.record.note.toLowerCase().includes(qClean))
+            g.patient.name.toLowerCase().includes(qClean) ||
+            g.patient.room.toLowerCase().includes(qClean) ||
+            g.records.some((r) => r.note && r.note.toLowerCase().includes(qClean))
           );
         })
-      : items;
+      : groups;
 
-    // Sort by room numeric, then by time
-    return searchedItems.sort((a, b) => {
-      const roomComp = String(a.patient.room).localeCompare(String(b.patient.room), 'vi', { numeric: true });
-      if (roomComp !== 0) return roomComp;
-      return a.record.time.localeCompare(b.record.time);
+    // Sort by room numeric
+    return filteredGroups.sort((a, b) => {
+      return String(a.patient.room).localeCompare(String(b.patient.room), 'vi', { numeric: true });
     });
   }, [glucoseRecords, reportSlot, reportDate, patients, q]);
 
+  // Total tests count in current filtered slot
+  const totalTestsInSlot = useMemo(() => {
+    return groupedGlucosePatients.reduce((sum, g) => sum + g.records.length, 0);
+  }, [groupedGlucosePatients]);
+
   const handleCopyGlucoseReport = () => {
-    if (!reportItems.length) return;
+    if (!groupedGlucosePatients.length) return;
     const slotName =
-      reportSlot === '06:00' ? 'MỐC 6H' :
-      reportSlot === '11:00' ? 'MỐC 11H' :
-      reportSlot === '17:00' ? 'MỐC 17H' :
-      reportSlot === '21:00' ? 'MỐC 21H' : 'TOÀN BỘ CÁC MỐC';
+      reportSlot === '06:00' ? 'BÁO CÁO 6H' :
+      reportSlot === '11:00' ? 'BÁO CÁO 11H' :
+      reportSlot === '17:00' ? 'BÁO CÁO 17H' :
+      reportSlot === '21:00' ? 'BÁO CÁO 21H' : 'BÁO CÁO TOÀN BỘ';
 
     const lines = [
       `BÁO CÁO ĐƯỜNG HUYẾT - ĐƠN NGUYÊN CƠ XƯƠNG KHỚP`,
@@ -225,18 +234,20 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
       `----------------------------------------`
     ];
 
-    reportItems.forEach((item, idx) => {
-      const p = item.patient;
-      const r = item.record;
+    groupedGlucosePatients.forEach((g, idx) => {
+      const p = g.patient;
       const ageStr = p.age ? ` (${p.age}t)` : '';
-      const timeStr = reportSlot === 'all' ? ` [${r.time}]` : '';
-      const insStr = r.insulinDose ? ` - 💉 ${r.insulinType ? `${r.insulinType} ` : ''}${r.insulinDose}` : '';
-      const noteStr = r.note ? ` (${r.note})` : '';
-      lines.push(`${idx + 1}. P.${p.room} - ${p.name}${ageStr}${timeStr}: ${r.glucoseValue} mmol/L${insStr}${noteStr}`);
+      const testsStr = g.records.map((r) => {
+        const timeLabel = r.time || r.slotType;
+        const insStr = r.insulinDose ? ` [💉 ${r.insulinType ? `${r.insulinType} ` : ''}${r.insulinDose}UI]` : '';
+        const noteStr = r.note ? ` (${r.note})` : '';
+        return `${timeLabel}: ${r.glucoseValue} mmol/L${insStr}${noteStr}`;
+      }).join(' | ');
+      lines.push(`${idx + 1}. P.${p.room} - ${p.name}${ageStr}: ${testsStr}`);
     });
 
     lines.push(`----------------------------------------`);
-    lines.push(`Tổng cộng: ${reportItems.length} kết quả`);
+    lines.push(`Tổng cộng: ${groupedGlucosePatients.length} bệnh nhân (${totalTestsInSlot} lượt test)`);
 
     navigator.clipboard.writeText(lines.join('\n')).then(() => {
       setCopyToast('Đã sao chép danh sách báo cáo vào bộ nhớ tạm!');
@@ -318,12 +329,12 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
               }}
               className="flex-1 min-w-0 px-2.5 py-1.5 rounded-xl border border-[#C3CAC4] text-xs font-bold text-[#0F2F2A] bg-[#F9FAF9] focus:bg-white focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none transition-colors cursor-pointer"
             >
-              <option value="none">📋 Chi tiết từng bệnh nhân (Mặc định)</option>
-              <option value="all">📸 Báo cáo: Toàn bộ mốc trong ngày</option>
-              <option value="06:00">📸 Báo cáo: Mốc 6 giờ sáng (06:00)</option>
-              <option value="11:00">📸 Báo cáo: Mốc 11 giờ trưa (11:00)</option>
-              <option value="17:00">📸 Báo cáo: Mốc 17 giờ chiều (17:00)</option>
-              <option value="21:00">📸 Báo cáo: Mốc 21 giờ tối (21:00)</option>
+              <option value="none">Chi tiết</option>
+              <option value="all">Báo cáo toàn bộ</option>
+              <option value="06:00">Báo cáo 6h</option>
+              <option value="11:00">Báo cáo 11h</option>
+              <option value="17:00">Báo cáo 17h</option>
+              <option value="21:00">Báo cáo 21h</option>
             </select>
           </div>
 
@@ -365,7 +376,7 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
         </div>
       )}
 
-      {/* CHẾ ĐỘ BÁO CÁO NHANH CHỤP MÀN HÌNH (KHI CHỌN MỐC GIỜ HOẶC TOÀN BỘ) */}
+      {/* CHẾ ĐỘ BÁO CÁO NHANH CHỤP MÀN HÌNH (GỘP THEO TỪNG BỆNH NHÂN) */}
       {reportSlot !== null ? (
         <div className="bg-white rounded-2xl border-2 border-emerald-800/30 shadow-md overflow-hidden animate-in fade-in duration-150">
           {/* Header Báo Cáo Chụp Màn Hình */}
@@ -381,10 +392,10 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
                 <span>Ngày: <strong className="text-white">{dmy(fromIso(reportDate))}</strong></span>
                 <span>·</span>
                 <span className="font-bold text-white bg-emerald-700/70 px-1.5 py-0.5 rounded text-[10px] uppercase">
-                  {reportSlot === 'all' ? 'TOÀN BỘ CÁC MỐC' : `MỐC ${reportSlot === '06:00' ? '6H' : reportSlot.replace(':00', 'H')}`}
+                  {reportSlot === 'all' ? 'BÁO CÁO TOÀN BỘ' : reportSlot === '06:00' ? 'BÁO CÁO 6H' : `BÁO CÁO ${reportSlot.replace(':00', 'H')}`}
                 </span>
                 <span>·</span>
-                <span>Tổng số: <strong className="text-white">{reportItems.length} ca</strong></span>
+                <span>Tổng: <strong className="text-white">{groupedGlucosePatients.length} BN ({totalTestsInSlot} lượt test)</strong></span>
               </div>
             </div>
 
@@ -410,8 +421,8 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
             </div>
           </div>
 
-          {/* Danh sách kết quả theo hàng ngang - xếp thứ tự dọc - chữ nhỏ gọn vừa hàng chụp ảnh */}
-          {!reportItems.length ? (
+          {/* Danh sách kết quả: Gộp các lần test của cùng 1 ca lại, tên hiện rõ ràng, chú thích ở dòng dưới */}
+          {!groupedGlucosePatients.length ? (
             <div className="p-8 text-center text-xs text-gray-500 space-y-2">
               <FileSpreadsheet className="w-8 h-8 text-gray-300 mx-auto" />
               <p className="font-semibold text-gray-700">
@@ -432,69 +443,84 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
             </div>
           ) : (
             <div className="divide-y divide-gray-100 bg-white">
-              {reportItems.map((item, idx) => {
-                const p = item.patient;
-                const r = item.record;
+              {groupedGlucosePatients.map((group, idx) => {
+                const p = group.patient;
                 return (
                   <div
-                    key={r.id || `${r.patientId}-${r.time}-${idx}`}
-                    className="flex items-center justify-between gap-1.5 px-2.5 py-1.5 hover:bg-emerald-50/40 transition-colors whitespace-nowrap text-[10px] sm:text-[10.5px]"
+                    key={p.id}
+                    className="p-2 sm:p-2.5 hover:bg-emerald-50/30 transition-colors"
                   >
-                    {/* STT & Phòng & Tên & Tuổi */}
-                    <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                      <span className="text-gray-400 font-mono text-[9px] w-4 shrink-0 text-right">
-                        {idx + 1}.
-                      </span>
-                      <span className="px-1.5 py-0.5 rounded bg-[#0F2F2A] text-white font-bold text-[9px] shrink-0">
-                        P.{p.room}
-                      </span>
-                      <strong className="text-gray-900 font-bold truncate max-w-[105px] sm:max-w-[145px]">
-                        {p.name}
-                      </strong>
-                      {p.age && (
-                        <span className="text-gray-500 font-medium shrink-0 text-[9px]">
-                          ({p.age}t)
+                    {/* Hàng 1: STT, Số phòng, TÊN BỆNH NHÂN (To, rõ ràng, không bị chèn ép), Tuổi & Chỉ số test */}
+                    <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+                      {/* Trái: STT + Phòng + Tên + Tuổi */}
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <span className="text-gray-400 font-mono text-[9.5px] w-3.5 shrink-0 text-right">
+                          {idx + 1}.
                         </span>
-                      )}
-                      {reportSlot === 'all' && (
-                        <span className="text-gray-400 font-mono text-[9px] shrink-0 ml-0.5">
-                          [{r.time}]
+                        <span className="px-1.5 py-0.5 rounded bg-[#0F2F2A] text-white font-bold text-[9px] shrink-0">
+                          P.{p.room}
                         </span>
-                      )}
+                        <strong className="text-xs sm:text-[13px] font-black text-gray-900 tracking-tight">
+                          {p.name}
+                        </strong>
+                        {p.age && (
+                          <span className="text-[10px] text-gray-500 font-medium shrink-0">
+                            ({p.age}t)
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Phải: Gộp toàn bộ các lần test của ca này trên hàng */}
+                      <div className="flex items-center gap-1.5 flex-wrap shrink-0 ml-auto">
+                        {group.records.map((r, rIdx) => (
+                          <div key={r.id || rIdx} className="flex items-center gap-1 shrink-0">
+                            <span className="text-gray-400 font-mono text-[9px]">
+                              {r.time || r.slotType}:
+                            </span>
+                            <span className={`px-1.5 py-0.5 rounded border font-black text-[10.5px] ${getGlucoseBadgeColor(r.glucoseValue)}`}>
+                              {r.glucoseValue} <span className="font-normal text-[8.5px]">mmol/L</span>
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
 
-                    {/* Chỉ số đường huyết & Insulin & Ghi chú */}
-                    <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                      {/* Đường huyết Badge */}
-                      <span className={`px-1.5 py-0.5 rounded border font-black text-[10.5px] shrink-0 ${getGlucoseBadgeColor(r.glucoseValue)}`}>
-                        {r.glucoseValue} <span className="font-normal text-[8.5px]">mmol/L</span>
-                      </span>
-
-                      {/* Insulin nếu có */}
-                      {r.insulinDose && (
-                        <span className="px-1.5 py-0.5 rounded bg-sky-50 text-sky-800 font-bold border border-sky-200 text-[9.5px] shrink-0 flex items-center gap-0.5">
-                          <span>💉</span>
-                          <span>{r.insulinType ? `${r.insulinType} ` : ''}{r.insulinDose}UI</span>
-                        </span>
-                      )}
-
-                      {/* Ghi chú nếu có */}
-                      {r.note && (
-                        <span className="text-gray-500 italic truncate max-w-[90px] sm:max-w-[140px] text-[9.5px]" title={r.note}>
-                          ({r.note})
-                        </span>
-                      )}
-                    </div>
+                    {/* Hàng 2: Chú thích và Insulin chuyển xuống dòng dưới nếu có (không làm xô đẩy tên bệnh nhân) */}
+                    {group.records.some((r) => r.insulinDose || r.note) && (
+                      <div className="mt-1 pl-5 sm:pl-6 flex flex-col gap-0.5 text-[9.5px]">
+                        {group.records.map((r, rIdx) => {
+                          if (!r.insulinDose && !r.note) return null;
+                          return (
+                            <div key={rIdx} className="flex items-center gap-2 text-gray-600 flex-wrap">
+                              {group.records.length > 1 && (
+                                <span className="font-mono text-gray-400 text-[9px]">[{r.time || r.slotType}]</span>
+                              )}
+                              {r.insulinDose && (
+                                <span className="px-1.5 py-0.2 rounded bg-sky-50 text-sky-800 font-bold border border-sky-200 shrink-0 flex items-center gap-0.5">
+                                  <span>💉</span>
+                                  <span>{r.insulinType ? `${r.insulinType} ` : ''}{r.insulinDose}UI</span>
+                                </span>
+                              )}
+                              {r.note && (
+                                <span className="italic text-gray-600">
+                                  Chú thích: {r.note}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
           )}
 
-          {reportItems.length > 0 && (
+          {groupedGlucosePatients.length > 0 && (
             <div className="px-3 py-1.5 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-[9.5px] text-gray-500">
-              <span>Đơn vị: mmol/L · Mẹo: Chụp ảnh màn hình để gửi báo cáo</span>
-              <span>Tổng: <strong>{reportItems.length}</strong> kết quả</span>
+              <span>Đơn vị: mmol/L · Mẹo: Chụp ảnh màn hình danh sách này để gửi báo cáo</span>
+              <span>Tổng: <strong>{groupedGlucosePatients.length}</strong> BN (<strong>{totalTestsInSlot}</strong> lượt)</span>
             </div>
           )}
         </div>

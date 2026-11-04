@@ -180,7 +180,7 @@ export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT
               </legend>
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                 <div>
-                  <label className="block text-[10px] text-gray-500 mb-0.5">Mạch (l/p)</label>
+                  <label className="h-4 flex items-center justify-center text-[10px] sm:text-[11px] font-medium text-gray-500 mb-1 whitespace-nowrap text-center">Mạch</label>
                   <input
                     type="text"
                     placeholder="80"
@@ -190,7 +190,7 @@ export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-gray-500 mb-0.5">HA (mmHg)</label>
+                  <label className="h-4 flex items-center justify-center text-[10px] sm:text-[11px] font-bold text-gray-700 mb-1 whitespace-nowrap text-center">HA</label>
                   <input
                     type="text"
                     placeholder="120/80"
@@ -200,7 +200,7 @@ export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-gray-500 mb-0.5">Nhiệt (°C)</label>
+                  <label className="h-4 flex items-center justify-center text-[10px] sm:text-[11px] font-medium text-gray-500 mb-1 whitespace-nowrap text-center">Nhiệt</label>
                   <input
                     type="text"
                     placeholder="36.8"
@@ -210,7 +210,7 @@ export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-gray-500 mb-0.5">SpO₂ (%)</label>
+                  <label className="h-4 flex items-center justify-center text-[10px] sm:text-[11px] font-medium text-gray-500 mb-1 whitespace-nowrap text-center">SpO₂</label>
                   <input
                     type="text"
                     placeholder="98"
@@ -220,7 +220,7 @@ export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] text-gray-500 mb-0.5">NT (l/p)</label>
+                  <label className="h-4 flex items-center justify-center text-[10px] sm:text-[11px] font-medium text-gray-500 mb-1 whitespace-nowrap text-center">Thở</label>
                   <input
                     type="text"
                     placeholder="18"
