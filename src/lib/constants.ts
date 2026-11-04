@@ -21,7 +21,22 @@ export const SITES: Record<ProcedureType, string[]> = {
   dien: ['Chi trên 2 bên', 'Chi dưới 2 bên', 'Chi trên P', 'Chi trên T', 'Chi dưới P', 'Chi dưới T']
 };
 
-export const DEFAULT_ROOMS = ['P.301', 'P.302', 'P.303', 'P.304', 'P.305', 'P.306'];
+export const DEFAULT_ROOMS = [
+  '820',
+  '821',
+  '822',
+  '823',
+  '824',
+  '825',
+  '826',
+  '827',
+  '828',
+  '858 (NHIỄM)',
+  '857 (YC)',
+  '864 (YC)',
+  '860',
+  '862'
+];
 
 export const DEFAULT_INSULINS = [
   'Wosulin 30/70',

@@ -89,7 +89,7 @@ export default function App() {
   const [scheds, setScheds] = useState<ScheduleItem[]>([]);
   const [reports, setReports] = useState<DutyReport[]>([]);
   const [glucoseRecords, setGlucoseRecords] = useState<GlucoseRecord[]>([]);
-  const [beds, setBeds] = useState<number>(30);
+  const [beds, setBeds] = useState<number>(35);
   const [rooms, setRooms] = useState<string[]>(DEFAULT_ROOMS);
   const [insulins, setInsulins] = useState<string[]>(DEFAULT_INSULINS);
   const [doctors, setDoctors] = useState<string[]>(DEFAULT_DOCTORS);
@@ -159,7 +159,7 @@ export default function App() {
     setScheds(local.scheds || []);
     setReports(local.reports || []);
     setGlucoseRecords(local.glucoseRecords || []);
-    setBeds(local.beds || 30);
+    setBeds(local.beds || 35);
     if (local.rooms && local.rooms.length > 0) {
       setRooms(local.rooms);
     }
@@ -206,7 +206,7 @@ export default function App() {
             (local.scheds || []).forEach((s) => saveSchedToFirestore(s).catch(() => {}));
             (local.reports || []).forEach((rep) => saveReportToFirestore(rep).catch(() => {}));
             saveSettingsToFirestore({
-              beds: local.beds || 30,
+              beds: local.beds || 35,
               rooms: local.rooms || DEFAULT_ROOMS,
               insulins: local.insulins || DEFAULT_INSULINS,
               doctors: local.doctors || DEFAULT_DOCTORS,

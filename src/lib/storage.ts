@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { Patient, VitalRecord, ScheduleItem, DutyReport, AppConfig, GlucoseRecord } from '../types';
-import { DEFAULT_INSULINS, DEFAULT_DOCTORS } from './constants';
+import { DEFAULT_INSULINS, DEFAULT_DOCTORS, DEFAULT_ROOMS } from './constants';
 
 declare global {
   interface Window {
@@ -122,7 +122,7 @@ export function getInitialLocalData(): AppStateData {
       if (Array.isArray(parsed.patients)) {
         // Filter out demo mockup patients and any patients from other hospital departments (e.g., room 8xx)
         const cleanPatients = parsed.patients.filter(
-          (p: Patient) => p && !DEMO_PATIENT_NAMES.has(p.name) && (!p.room || !String(p.room).includes('8'))
+          (p: Patient) => p && !DEMO_PATIENT_NAMES.has(p.name)
         );
         const cleanRecs = Array.isArray(parsed.recs)
           ? parsed.recs.filter((r: VitalRecord) => r.pid > 27)
@@ -138,8 +138,8 @@ export function getInitialLocalData(): AppStateData {
           ? parsed.glucoseRecords
           : [];
 
-        if (!parsed.rooms || !parsed.rooms.length || parsed.rooms.some((r: string) => r.includes('8'))) {
-          parsed.rooms = ['P.301', 'P.302', 'P.303', 'P.304', 'P.305', 'P.306'];
+        if (!parsed.rooms || !parsed.rooms.length) {
+          parsed.rooms = [...DEFAULT_ROOMS];
         }
 
         const cleanInsulins = Array.isArray(parsed.insulins) && parsed.insulins.length > 0
@@ -156,7 +156,7 @@ export function getInitialLocalData(): AppStateData {
           scheds: cleanScheds,
           reports: cleanReports,
           glucoseRecords: cleanGlucose,
-          beds: parsed.beds && parsed.beds <= 40 ? parsed.beds : 30,
+          beds: parsed.beds || 35,
           rooms: parsed.rooms,
           insulins: cleanInsulins,
           doctors: cleanDoctors,
@@ -175,8 +175,8 @@ export function getInitialLocalData(): AppStateData {
     scheds: [],
     reports: [],
     glucoseRecords: [],
-    beds: 30,
-    rooms: ['P.301', 'P.302', 'P.303', 'P.304', 'P.305', 'P.306'],
+    beds: 35,
+    rooms: [...DEFAULT_ROOMS],
     insulins: [...DEFAULT_INSULINS],
     doctors: [...DEFAULT_DOCTORS],
   };

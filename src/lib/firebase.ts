@@ -157,7 +157,9 @@ export function cleanForFirestore<T>(data: T): any {
 export async function savePatientToFirestore(p: Patient) {
   const path = `${COLLECTIONS.PATIENTS}/${p.id}`;
   try {
-    await setDoc(doc(db, COLLECTIONS.PATIENTS, String(p.id)), cleanForFirestore(p));
+    const cleaned = cleanForFirestore(p);
+    await setDoc(doc(db, COLLECTIONS.PATIENTS, String(p.id)), cleaned);
+    setDoc(doc(db, 'patients', String(p.id)), cleaned).catch(() => {});
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
@@ -167,6 +169,7 @@ export async function deletePatientFromFirestore(id: number) {
   const path = `${COLLECTIONS.PATIENTS}/${id}`;
   try {
     await deleteDoc(doc(db, COLLECTIONS.PATIENTS, String(id)));
+    deleteDoc(doc(db, 'patients', String(id))).catch(() => {});
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
   }
@@ -175,7 +178,9 @@ export async function deletePatientFromFirestore(id: number) {
 export async function saveRecToFirestore(r: VitalRecord) {
   const path = `${COLLECTIONS.RECS}/${r.id}`;
   try {
-    await setDoc(doc(db, COLLECTIONS.RECS, String(r.id)), cleanForFirestore(r));
+    const cleaned = cleanForFirestore(r);
+    await setDoc(doc(db, COLLECTIONS.RECS, String(r.id)), cleaned);
+    setDoc(doc(db, 'recs', String(r.id)), cleaned).catch(() => {});
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
@@ -185,6 +190,7 @@ export async function deleteRecFromFirestore(id: number) {
   const path = `${COLLECTIONS.RECS}/${id}`;
   try {
     await deleteDoc(doc(db, COLLECTIONS.RECS, String(id)));
+    deleteDoc(doc(db, 'recs', String(id))).catch(() => {});
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
   }
@@ -211,7 +217,9 @@ export async function deleteSchedFromFirestore(id: number) {
 export async function saveReportToFirestore(rep: DutyReport) {
   const path = `${COLLECTIONS.REPORTS}/${rep.id}`;
   try {
-    await setDoc(doc(db, COLLECTIONS.REPORTS, String(rep.id)), cleanForFirestore(rep));
+    const cleaned = cleanForFirestore(rep);
+    await setDoc(doc(db, COLLECTIONS.REPORTS, String(rep.id)), cleaned);
+    setDoc(doc(db, 'reports', String(rep.id)), cleaned).catch(() => {});
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
@@ -221,6 +229,7 @@ export async function deleteReportFromFirestore(id: number) {
   const path = `${COLLECTIONS.REPORTS}/${id}`;
   try {
     await deleteDoc(doc(db, COLLECTIONS.REPORTS, String(id)));
+    deleteDoc(doc(db, 'reports', String(id))).catch(() => {});
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
   }
@@ -229,7 +238,9 @@ export async function deleteReportFromFirestore(id: number) {
 export async function saveSettingsToFirestore(settings: { beds: number; rooms?: string[]; insulins?: string[]; doctors?: string[] }) {
   const path = `${COLLECTIONS.SETTINGS}/1`;
   try {
-    await setDoc(doc(db, COLLECTIONS.SETTINGS, '1'), cleanForFirestore(settings), { merge: true });
+    const cleaned = cleanForFirestore(settings);
+    await setDoc(doc(db, COLLECTIONS.SETTINGS, '1'), cleaned, { merge: true });
+    setDoc(doc(db, 'settings', '1'), cleaned, { merge: true }).catch(() => {});
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
   }
