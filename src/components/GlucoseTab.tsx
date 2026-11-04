@@ -251,7 +251,8 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
     <div className="space-y-4">
       {/* Search, Filter & Action Bar */}
       <div className="bg-white p-3 sm:p-4 rounded-2xl border border-[#DDE1DC] shadow-xs space-y-2.5">
-        <div className="flex items-center gap-2 sm:gap-2.5">
+        {/* Row 1: Back + Search + Add button (Vừa vặn 100% trên mobile, không bị đẩy ra ngoài) */}
+        <div className="flex items-center gap-2">
           {onGoBack && (
             <button
               type="button"
@@ -266,19 +267,19 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
 
           {/* Search Box */}
           <div className="relative flex-1 min-w-0">
-            <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="search"
-              placeholder="Tìm theo tên bệnh nhân, số phòng..."
+              placeholder="Tìm tên, phòng..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="w-full pl-9 pr-8 py-2 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-[#F9FAF9] focus:bg-white transition-colors placeholder:text-gray-400"
+              className="w-full pl-8 pr-7 py-2 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-[#F9FAF9] focus:bg-white transition-colors placeholder:text-gray-400"
             />
             {q && (
               <button
                 type="button"
                 onClick={() => setQ('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
                 title="Xóa tìm kiếm"
               >
                 <X className="w-3.5 h-3.5" />
@@ -294,96 +295,46 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
               setPreselectedDate(undefined);
               setDeptModalOpen(true);
             }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer shrink-0 whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer shrink-0 whitespace-nowrap"
           >
             <Plus className="w-4 h-4" />
-            <span>Thêm kết quả test</span>
+            <span>Thêm kết quả</span>
           </button>
         </div>
 
-        {/* Bộ lọc danh sách báo cáo chụp màn hình */}
+        {/* Row 2: Bộ lọc bằng Ô THẢ XUỐNG (Dropdown), không cần trượt ngang + Ngày báo cáo */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2.5 border-t border-[#EEF0ED]">
-          {/* Slot Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-            <span className="text-[11px] font-bold text-gray-600 shrink-0 mr-1 flex items-center gap-1">
+          {/* Ô thả xuống chọn chế độ xem / mốc báo cáo */}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <label className="text-[11px] font-bold text-gray-600 shrink-0 flex items-center gap-1">
               <Camera className="w-3.5 h-3.5 text-[#0E6B5E]" />
-              Báo cáo:
-            </span>
-            <button
-              type="button"
-              onClick={() => setReportSlot(null)}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                reportSlot === null
-                  ? 'bg-[#0F2F2A] text-white shadow-xs'
-                  : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-              }`}
-              title="Xem danh sách chi tiết từng bệnh nhân"
+              <span>Chế độ:</span>
+            </label>
+            <select
+              value={reportSlot === null ? 'none' : reportSlot}
+              onChange={(e) => {
+                const val = e.target.value;
+                setReportSlot(val === 'none' ? null : (val as ReportSlot));
+              }}
+              className="flex-1 min-w-0 px-2.5 py-1.5 rounded-xl border border-[#C3CAC4] text-xs font-bold text-[#0F2F2A] bg-[#F9FAF9] focus:bg-white focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none transition-colors cursor-pointer"
             >
-              Chi tiết
-            </button>
-            <button
-              type="button"
-              onClick={() => setReportSlot('all')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                reportSlot === 'all'
-                  ? 'bg-[#0E6B5E] text-white shadow-xs'
-                  : 'bg-emerald-50 hover:bg-emerald-100 text-[#0E6B5E]'
-              }`}
-              title="Xem báo cáo toàn bộ mốc trong ngày"
-            >
-              Toàn bộ
-            </button>
-            <button
-              type="button"
-              onClick={() => setReportSlot('06:00')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                reportSlot === '06:00'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'bg-amber-50 hover:bg-amber-100 text-amber-800'
-              }`}
-            >
-              6 giờ
-            </button>
-            <button
-              type="button"
-              onClick={() => setReportSlot('11:00')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                reportSlot === '11:00'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'bg-amber-50 hover:bg-amber-100 text-amber-800'
-              }`}
-            >
-              11h
-            </button>
-            <button
-              type="button"
-              onClick={() => setReportSlot('17:00')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                reportSlot === '17:00'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'bg-amber-50 hover:bg-amber-100 text-amber-800'
-              }`}
-            >
-              17h
-            </button>
-            <button
-              type="button"
-              onClick={() => setReportSlot('21:00')}
-              className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
-                reportSlot === '21:00'
-                  ? 'bg-amber-600 text-white shadow-xs'
-                  : 'bg-amber-50 hover:bg-amber-100 text-amber-800'
-              }`}
-            >
-              21h
-            </button>
+              <option value="none">📋 Chi tiết từng bệnh nhân (Mặc định)</option>
+              <option value="all">📸 Báo cáo: Toàn bộ mốc trong ngày</option>
+              <option value="06:00">📸 Báo cáo: Mốc 6 giờ sáng (06:00)</option>
+              <option value="11:00">📸 Báo cáo: Mốc 11 giờ trưa (11:00)</option>
+              <option value="17:00">📸 Báo cáo: Mốc 17 giờ chiều (17:00)</option>
+              <option value="21:00">📸 Báo cáo: Mốc 21 giờ tối (21:00)</option>
+            </select>
           </div>
 
           {/* Ngày báo cáo & Thống kê */}
           <div className="flex items-center justify-between sm:justify-end gap-2 text-xs shrink-0">
             {reportSlot !== null ? (
-              <div className="flex items-center gap-1.5 bg-[#F3F4F1] px-2.5 py-1 rounded-xl border border-[#DDE1DC]">
-                <Calendar className="w-3.5 h-3.5 text-[#56615C] shrink-0" />
+              <div className="flex items-center gap-1.5 bg-[#F3F4F1] px-2.5 py-1 rounded-xl border border-[#DDE1DC] w-full sm:w-auto justify-between sm:justify-start">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-[#56615C] shrink-0" />
+                  <span className="text-[11px] text-gray-500 font-medium">Ngày:</span>
+                </div>
                 <input
                   type="date"
                   value={reportDate}
@@ -392,7 +343,7 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
                 />
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-[11px] text-gray-500">
+              <div className="flex items-center gap-2 text-[11px] text-gray-500 w-full sm:w-auto justify-end">
                 <span>
                   Bệnh nhân test: <strong className="text-[#0F2F2A]">{filteredPatients.length}</strong>
                 </span>

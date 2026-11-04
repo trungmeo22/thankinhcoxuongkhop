@@ -247,91 +247,97 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
   return (
     <div className="space-y-4">
       {/* Search, Filter & Action Bar */}
-      <div className="bg-white p-3 sm:p-4 rounded-2xl border border-[#DDE1DC] shadow-xs">
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
-          {/* Back button (if present) & Search bar */}
-          <div className="flex items-center gap-2 flex-1 min-w-0">
-            {onGoBack && (
+      <div className="bg-white p-3 sm:p-4 rounded-2xl border border-[#DDE1DC] shadow-xs space-y-2.5">
+        {/* Row 1: Back (nếu có) + Search box + Nút Ghi DHST (vừa vặn 100% trên mobile, không bị đẩy ra ngoài) */}
+        <div className="flex items-center gap-2">
+          {onGoBack && (
+            <button
+              type="button"
+              onClick={onGoBack}
+              className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+              title="Quay lại"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Quay lại</span>
+            </button>
+          )}
+
+          {/* Search Box */}
+          <div className="relative flex-1 min-w-0">
+            <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm tên, bác sĩ, phòng..."
+              className="w-full pl-8 pr-7 py-2 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-[#F9FAF9] focus:bg-white transition-colors placeholder:text-gray-400"
+            />
+            {searchQuery && (
               <button
                 type="button"
-                onClick={onGoBack}
-                className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold inline-flex items-center gap-1 transition-colors cursor-pointer shrink-0"
-                title="Quay lại"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
+                title="Xóa tìm kiếm"
               >
-                <ArrowLeft className="w-4 h-4" />
-                <span className="hidden sm:inline">Quay lại</span>
+                <X className="w-3.5 h-3.5" />
               </button>
             )}
-            <div className="relative flex-1 min-w-0">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm tên, bác sĩ, phòng..."
-                className="w-full pl-9 pr-8 py-2 rounded-xl border border-[#C3CAC4] text-xs focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none bg-[#F9FAF9] focus:bg-white transition-colors placeholder:text-gray-400"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 p-0.5 cursor-pointer"
-                  title="Xóa tìm kiếm"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
           </div>
 
-          {/* Date Picker, Quick Today & Ghi DHST Button */}
-          <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0">
-            <div className="flex items-center gap-1.5" title={dayTitle}>
-              <div className="flex items-center gap-1.5 bg-[#F3F4F1] px-2.5 py-1.5 rounded-xl border border-[#DDE1DC]">
-                <Calendar className="w-3.5 h-3.5 text-[#56615C] shrink-0" />
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="bg-transparent text-xs font-semibold text-[#17201D] focus:outline-none cursor-pointer"
-                />
-              </div>
+          {/* Nút Ghi DHST */}
+          <button
+            type="button"
+            onClick={() => onOpenRecordModal()}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer shrink-0 whitespace-nowrap"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Ghi DHST</span>
+          </button>
+        </div>
 
-              {!isToday && (
-                <button
-                  type="button"
-                  onClick={() => setSelectedDate(isoDay(Date.now()))}
-                  className="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-800 transition-colors cursor-pointer"
-                  title="Về hôm nay"
-                >
-                  Hôm nay
-                </button>
-              )}
+        {/* Row 2: Ô thả xuống chọn Chế độ xem + Bộ chọn ngày (Không trượt ngang, không tràn viền) */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 pt-2.5 border-t border-[#EEF0ED]">
+          {/* Ô thả xuống chọn chế độ xem */}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <label className="text-[11px] font-bold text-gray-600 shrink-0 flex items-center gap-1">
+              <Camera className="w-3.5 h-3.5 text-[#0E6B5E]" />
+              <span>Chế độ:</span>
+            </label>
+            <select
+              value={isQuickDailyReport ? 'quick' : 'rooms'}
+              onChange={(e) => setIsQuickDailyReport(e.target.value === 'quick')}
+              className="flex-1 min-w-0 px-2.5 py-1.5 rounded-xl border border-[#C3CAC4] text-xs font-bold text-[#0F2F2A] bg-[#F9FAF9] focus:bg-white focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none transition-colors cursor-pointer"
+            >
+              <option value="rooms">📋 Xem theo từng phòng (Mặc định)</option>
+              <option value="quick">📸 Danh sách nhanh trong ngày (Chụp màn hình)</option>
+            </select>
+          </div>
+
+          {/* Bộ chọn ngày & Hôm nay */}
+          <div className="flex items-center justify-between sm:justify-end gap-1.5 shrink-0">
+            <div className="flex items-center gap-1.5 bg-[#F3F4F1] px-2.5 py-1 rounded-xl border border-[#DDE1DC] w-full sm:w-auto justify-between sm:justify-start">
+              <div className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-[#56615C] shrink-0" />
+                <span className="text-[11px] text-gray-500 font-medium">Ngày:</span>
+              </div>
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="bg-transparent text-xs font-semibold text-[#17201D] focus:outline-none cursor-pointer"
+              />
             </div>
 
-            {/* Nút Danh sách nhanh trong ngày */}
-            <button
-              type="button"
-              onClick={() => setIsQuickDailyReport(!isQuickDailyReport)}
-              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 whitespace-nowrap shadow-xs active:scale-95 ${
-                isQuickDailyReport
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-emerald-50 hover:bg-emerald-100 text-[#0E6B5E] border border-emerald-200'
-              }`}
-              title="Tổng hợp DHST & diễn biến cả ngày để chụp màn hình nhanh"
-            >
-              <Camera className="w-4 h-4" />
-              <span>{isQuickDailyReport ? 'Xem theo phòng' : 'DS nhanh trong ngày'}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onOpenRecordModal()}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white text-xs font-bold shadow-xs active:scale-95 transition-all cursor-pointer shrink-0 whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Ghi DHST</span>
-            </button>
+            {!isToday && (
+              <button
+                type="button"
+                onClick={() => setSelectedDate(isoDay(Date.now()))}
+                className="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-800 transition-colors cursor-pointer shrink-0"
+                title="Về hôm nay"
+              >
+                Hôm nay
+              </button>
+            )}
           </div>
         </div>
       </div>
