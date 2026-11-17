@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Patient } from '../../types';
-import { dtLocal, hm, dmy, DEFAULT_ROOMS, DEFAULT_DOCTORS } from '../../lib/constants';
+import { dtLocal, DEFAULT_ROOMS, DEFAULT_DOCTORS } from '../../lib/constants';
 import { X, Clock, AlertCircle } from 'lucide-react';
 
 interface AdmitModalProps {
@@ -94,24 +94,29 @@ export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden text-xs">
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-5 space-y-3.5">
-            {/* Time banner */}
-            <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 text-[#0B4F45] text-xs font-medium border border-emerald-100">
-              <Clock className="w-4 h-4 shrink-0" />
-              {isEdit ? (
-                <div className="flex items-center gap-2 flex-1">
-                  <span>Giờ nhập:</span>
-                  <input
-                    type="datetime-local"
-                    value={admitTime}
-                    onChange={(e) => setAdmitTime(e.target.value)}
-                    className="bg-white px-2 py-0.5 rounded-md border border-emerald-200 text-xs font-semibold focus:outline-none"
-                  />
-                </div>
-              ) : (
-                <span>
-                  Giờ nhập tự động: <strong>{hm(now)} · {dmy(now)}</strong>
-                </span>
-              )}
+            {/* Admission Time */}
+            <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl bg-emerald-50 text-[#0B4F45] text-xs font-medium border border-emerald-100">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <Clock className="w-4 h-4 shrink-0" />
+                <label htmlFor="admit-time-input" className="shrink-0 font-semibold">
+                  Giờ nhập viện:
+                </label>
+                <input
+                  id="admit-time-input"
+                  type="datetime-local"
+                  value={admitTime}
+                  onChange={(e) => setAdmitTime(e.target.value)}
+                  className="bg-white px-2.5 py-1 rounded-lg border border-emerald-200 text-xs font-semibold text-[#0F2F2A] focus:ring-1 focus:ring-[#0E6B5E] focus:outline-none min-w-0 flex-1 sm:flex-initial"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setAdmitTime(dtLocal(Date.now()))}
+                className="px-2 py-1 rounded-lg bg-white hover:bg-emerald-100 text-[#0E6B5E] border border-emerald-200 text-[11px] font-semibold transition-colors cursor-pointer shrink-0"
+                title="Đặt lại theo thời gian hiện tại"
+              >
+                Hiện tại
+              </button>
             </div>
 
             {/* Name */}

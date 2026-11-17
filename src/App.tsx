@@ -17,6 +17,7 @@ import {
   saveSettingsToFirestore,
   saveGlucoseToFirestore,
   deleteGlucoseFromFirestore,
+  purgeAllClinicalDataFromFirestore,
   handleFirestoreError
 } from './lib/firebase';
 import {
@@ -31,6 +32,7 @@ import {
   saveLocalData,
   isLocalAuthenticated,
   setLocalAuthenticated,
+  clearLocalClinicalData,
   DEMO_PATIENT_NAMES
 } from './lib/storage';
 import { uid, isIn, isOut, isoDay } from './lib/constants';
@@ -102,6 +104,7 @@ export default function App() {
 
   const [vitalsModalOpen, setVitalsModalOpen] = useState(false);
   const [vitalsTargetPatient, setVitalsTargetPatient] = useState<Patient | null>(null);
+  const [editingVitalRecord, setEditingVitalRecord] = useState<VitalRecord | null>(null);
 
   const [orderModalOpen, setOrderModalOpen] = useState(false);
   const [orderTargetPatient, setOrderTargetPatient] = useState<Patient | null>(null);
@@ -176,7 +179,6 @@ export default function App() {
     setSyncStatus('saving');
 
     const unsubs: (() => void)[] = [];
-    let initialPatientsHandled = false;
 
     // 1. Patients collection
     const unsubsPatients = onSnapshot(
@@ -190,30 +192,8 @@ export default function App() {
           }
         });
 
-        if (list.length > 0) {
-          setPatients(list);
-          saveLocalData({ patients: list });
-        } else if (!initialPatientsHandled) {
-          // If Firestore is empty, check if this browser has local patients to seed/upload
-          const local = getInitialLocalData();
-          if (local.patients && local.patients.length > 0) {
-            console.log('Seeding existing local data to Firestore:', local.patients.length, 'patients');
-            local.patients.forEach((p) => {
-              savePatientToFirestore(p).catch((err) => console.warn('Seed patient error:', err));
-            });
-            (local.recs || []).forEach((r) => saveRecToFirestore(r).catch(() => {}));
-            (local.glucoseRecords || []).forEach((g) => saveGlucoseToFirestore(g).catch(() => {}));
-            (local.scheds || []).forEach((s) => saveSchedToFirestore(s).catch(() => {}));
-            (local.reports || []).forEach((rep) => saveReportToFirestore(rep).catch(() => {}));
-            saveSettingsToFirestore({
-              beds: local.beds || 35,
-              rooms: local.rooms || DEFAULT_ROOMS,
-              insulins: local.insulins || DEFAULT_INSULINS,
-              doctors: local.doctors || DEFAULT_DOCTORS,
-            }).catch(() => {});
-          }
-        }
-        initialPatientsHandled = true;
+        setPatients(list);
+        saveLocalData({ patients: list });
         setSyncStatus('ok');
       },
       (err) => {
@@ -442,6 +422,7 @@ export default function App() {
     setSyncStatus('ok');
     setVitalsModalOpen(false);
     setVitalsTargetPatient(null);
+    setEditingVitalRecord(null);
   };
 
   const handleDeleteVitalRecord = async (id: number) => {
@@ -651,6 +632,22 @@ export default function App() {
     setSettingsModalOpen(false);
   };
 
+  const handlePurgeAllPatients = async () => {
+    setSyncStatus('saving');
+    setPatients([]);
+    setRecs([]);
+    setScheds([]);
+    setReports([]);
+    setGlucoseRecords([]);
+    clearLocalClinicalData();
+    try {
+      await purgeAllClinicalDataFromFirestore();
+    } catch (e) {
+      console.warn('Purge clinical data error:', e);
+    }
+    setSyncStatus('ok');
+  };
+
   const handleSaveGlucoseRecord = async (record: GlucoseRecord) => {
     setSyncStatus('saving');
     const exists = glucoseRecords.some((g) => g.id === record.id);
@@ -839,8 +836,9 @@ export default function App() {
             patients={patients}
             recs={recs}
             onGoBack={handleBackTab}
-            onOpenRecordModal={(p) => {
+            onOpenRecordModal={(p, rec) => {
               setVitalsTargetPatient(p || null);
+              setEditingVitalRecord(rec || null);
               setVitalsModalOpen(true);
             }}
             onOpenPatientHistory={(p) => {
@@ -848,6 +846,7 @@ export default function App() {
               setHistoryModalOpen(true);
             }}
             onAddTreatment={handleAddTreatment}
+            onDeleteVitalRecord={handleDeleteVitalRecord}
           />
         )}
 
@@ -912,10 +911,12 @@ export default function App() {
       {vitalsModalOpen && (
         <RecordVitalsModal
           initialPatient={vitalsTargetPatient}
+          initialRecord={editingVitalRecord}
           patients={patients}
           onClose={() => {
             setVitalsModalOpen(false);
             setVitalsTargetPatient(null);
+            setEditingVitalRecord(null);
           }}
           onSave={handleSaveVitalRecord}
         />
@@ -988,6 +989,7 @@ export default function App() {
           patients={patients}
           onClose={() => setSettingsModalOpen(false)}
           onSave={handleSaveSettings}
+          onPurgeAllPatients={handlePurgeAllPatients}
         />
       )}
     </div>

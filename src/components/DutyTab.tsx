@@ -426,7 +426,7 @@ export const DutyTab: React.FC<DutyTabProps> = ({
                   setEditingId(null);
                   setDoctor('');
                   setNurse('');
-                  setBlocks([{ name: '', room: '', notes: [''] }]);
+                  setBlocks([{ name: '', room: '', notes: [{ time: hm(Date.now()), text: '' }] }]);
                 }}
                 className="text-xs text-red-600 hover:underline font-semibold"
               >

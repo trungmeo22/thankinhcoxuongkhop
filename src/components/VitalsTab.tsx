@@ -15,15 +15,16 @@ import {
   KIND_LABELS,
   fold,
 } from '../lib/constants';
-import { Plus, FileSpreadsheet, AlertTriangle, Calendar, ArrowLeft, Search, X, Camera, Copy, Check } from 'lucide-react';
-import { VitalsTimelineTable } from './VitalsTimelineTable';
+import { Plus, FileSpreadsheet, AlertTriangle, Calendar, ArrowLeft, Search, X, Camera, Copy, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { VitalsTimelineTable, VitalsTimelineItem } from './VitalsTimelineTable';
 
 interface VitalsTabProps {
   patients: Patient[];
   recs: VitalRecord[];
-  onOpenRecordModal: (p?: Patient) => void;
+  onOpenRecordModal: (p?: Patient, record?: VitalRecord | null) => void;
   onOpenPatientHistory: (p: Patient) => void;
   onAddTreatment?: (recordId: number, text: string) => void;
+  onDeleteVitalRecord?: (id: number) => void;
   onGoBack?: () => void;
 }
 
@@ -33,6 +34,7 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
   onOpenRecordModal,
   onOpenPatientHistory,
   onAddTreatment,
+  onDeleteVitalRecord,
   onGoBack,
 }) => {
   const [selectedDate, setSelectedDate] = useState(isoDay(Date.now()));
@@ -40,6 +42,11 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
   const [expandedPids, setExpandedPids] = useState<Set<number>>(new Set());
   const [isQuickDailyReport, setIsQuickDailyReport] = useState(false);
   const [copyToast, setCopyToast] = useState<string | null>(null);
+
+  const shiftDate = (deltaDays: number) => {
+    const nextMs = fromIso(selectedDate) + deltaDays * DAY;
+    setSelectedDate(isoDay(nextMs));
+  };
 
   const toggleExpand = (pid: number) => {
     setExpandedPids((prev) => {
@@ -145,7 +152,7 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
 
     // Add admission records on this day if having vitals
     patients.forEach((p) => {
-      if (p.admitAt >= dStart && p.admitAt < dEnd && (hasVit(p.av) || p.pulse || p.bp)) {
+      if (p.admitAt >= dStart && p.admitAt < dEnd && ((p.av && hasVit(p.av)) || p.pulse || p.bp)) {
         if (!map.has(p.id)) {
           map.set(p.id, { patient: p, records: [] });
         }
@@ -319,26 +326,47 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
             </select>
           </div>
 
-          {/* Bộ chọn ngày & Hôm nay */}
+          {/* Bộ chọn ngày với nút tăng giảm ngày & Hôm nay */}
           <div className="flex items-center justify-between sm:justify-end gap-1.5 shrink-0">
-            <div className="flex items-center gap-1.5 bg-[#F3F4F1] px-2.5 py-1 rounded-xl border border-[#DDE1DC] w-full sm:w-auto justify-between sm:justify-start">
-              <div className="flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-[#56615C] shrink-0" />
-                <span className="text-[11px] text-gray-500 font-medium">Ngày:</span>
+            <div className="flex items-center gap-1 bg-[#F3F4F1] p-1 rounded-xl border border-[#DDE1DC] w-full sm:w-auto justify-between sm:justify-start">
+              <button
+                type="button"
+                onClick={() => shiftDate(-1)}
+                className="p-1.5 rounded-lg bg-white hover:bg-emerald-50 text-[#0F2F2A] border border-[#DDE1DC] transition-colors cursor-pointer active:scale-95 shrink-0"
+                title="Lùi 1 ngày"
+                aria-label="Lùi 1 ngày"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+
+              <div className="flex items-center gap-1.5 px-1.5 min-w-0">
+                <Calendar className="w-3.5 h-3.5 text-[#56615C] shrink-0 hidden sm:inline" />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => {
+                    if (e.target.value) setSelectedDate(e.target.value);
+                  }}
+                  className="bg-transparent text-xs font-semibold text-[#17201D] focus:outline-none cursor-pointer text-center"
+                />
               </div>
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-transparent text-xs font-semibold text-[#17201D] focus:outline-none cursor-pointer"
-              />
+
+              <button
+                type="button"
+                onClick={() => shiftDate(1)}
+                className="p-1.5 rounded-lg bg-white hover:bg-emerald-50 text-[#0F2F2A] border border-[#DDE1DC] transition-colors cursor-pointer active:scale-95 shrink-0"
+                title="Tăng 1 ngày"
+                aria-label="Tăng 1 ngày"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
 
             {!isToday && (
               <button
                 type="button"
                 onClick={() => setSelectedDate(isoDay(Date.now()))}
-                className="px-2.5 py-1.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-gray-800 transition-colors cursor-pointer shrink-0"
+                className="px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-xs font-semibold text-[#0B5C51] transition-colors cursor-pointer shrink-0"
                 title="Về hôm nay"
               >
                 Hôm nay
@@ -506,19 +534,21 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
                   {roomPatients.map((p) => {
                     const isExpanded = expandedPids.has(p.id);
                     const fullTimeline = getPatientFullTimeline(p);
+                    const dayRecs = getPatientDayRecords(p);
+                    const hasDayAbnormal = dayRecs.some((r) => r.abn);
                     const ageStr = p.age ? `${String(p.age).trim()}t` : '';
 
                     return (
                       <div key={p.id} className="transition-colors">
-                        {/* Collapsed / Summary Header Row: Tên bệnh nhân, tuổi (t), nút Thêm DHST */}
+                        {/* Collapsed / Summary Header Row: Chỉ hiện danh sách bệnh nhân; bấm vào từng ca để xem DHST đầy đủ */}
                         <div
                           onClick={() => toggleExpand(p.id)}
                           className={`px-3 py-2.5 sm:px-4 sm:py-3 flex items-center justify-between gap-2.5 cursor-pointer select-none transition-colors ${
                             isExpanded ? 'bg-emerald-50/50 border-b border-emerald-100' : 'bg-white hover:bg-gray-50/80'
                           }`}
                         >
-                          {/* Left: Tên bệnh nhân & Tuổi viết tắt (t) */}
-                          <div className="flex items-baseline gap-1.5 min-w-0 flex-1">
+                          {/* Left: Tên bệnh nhân, Tuổi & số lần đo trong ngày */}
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1 flex-wrap">
                             <strong className="text-sm text-[#0F2F2A] font-bold truncate">
                               {p.name}
                             </strong>
@@ -527,9 +557,25 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
                                 ({ageStr})
                               </span>
                             )}
+                            {dayRecs.length > 0 ? (
+                              <span
+                                className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
+                                  hasDayAbnormal
+                                    ? 'bg-red-100 text-red-700'
+                                    : 'bg-emerald-100 text-emerald-800'
+                                }`}
+                              >
+                                {hasDayAbnormal && <AlertTriangle className="w-2.5 h-2.5" />}
+                                {dayRecs.length} lần ({hm(dayRecs[dayRecs.length - 1].at)})
+                              </span>
+                            ) : (
+                              <span className="text-[10px] text-gray-400 font-medium shrink-0">
+                                · {recs.filter((r) => r.pid === p.id).length} tổng
+                              </span>
+                            )}
                           </div>
 
-                          {/* Right: Nút Thêm DHST thu nhỏ bề ngang, không còn mũi tên */}
+                          {/* Right: Nút Thêm DHST */}
                           <button
                             type="button"
                             onClick={(e) => {
@@ -544,7 +590,7 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
                           </button>
                         </div>
 
-                        {/* Expanded Section: Mở trực tiếp timeline trượt ngang */}
+                        {/* Expanded Section: Bấm vào từng ca để xem DHST đầy đủ (xếp theo ngày) */}
                         {isExpanded && (
                           <div className="p-2.5 sm:p-3.5 bg-[#FAFBF9] border-t border-[#EEF0ED] animate-in fade-in duration-150">
                             <VitalsTimelineTable
@@ -552,6 +598,12 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
                               patient={p}
                               onAddVitals={() => onOpenRecordModal(p)}
                               onAddTreatment={onAddTreatment}
+                              onEditVitals={(item: VitalsTimelineItem) => {
+                                if (item.isAdmit) return;
+                                const rawRec = recs.find((r) => r.id === item.id);
+                                if (rawRec) onOpenRecordModal(p, rawRec);
+                              }}
+                              onDeleteVitals={onDeleteVitalRecord}
                             />
                           </div>
                         )}

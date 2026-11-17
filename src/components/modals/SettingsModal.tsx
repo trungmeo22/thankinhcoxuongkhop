@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Patient } from '../../types';
 import { DEFAULT_ROOMS, DEFAULT_INSULINS, DEFAULT_DOCTORS } from '../../lib/constants';
-import { X, Bed, Plus, RotateCcw, AlertCircle, CheckCircle2, Settings as SettingsIcon, Info, Syringe, UserCheck } from 'lucide-react';
+import { X, Bed, Plus, RotateCcw, AlertCircle, CheckCircle2, Settings as SettingsIcon, Info, Syringe, UserCheck, Trash2 } from 'lucide-react';
 
 interface SettingsModalProps {
   currentBeds: number;
@@ -11,6 +11,7 @@ interface SettingsModalProps {
   patients: Patient[];
   onClose: () => void;
   onSave: (beds: number, rooms: string[], insulins?: string[], doctors?: string[]) => void;
+  onPurgeAllPatients?: () => Promise<void>;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -21,6 +22,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   patients,
   onClose,
   onSave,
+  onPurgeAllPatients,
 }) => {
   const [beds, setBeds] = useState<number>(currentBeds || 30);
   const [rooms, setRooms] = useState<string[]>(
@@ -37,6 +39,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [newDoctor, setNewDoctor] = useState('');
   const [err, setErr] = useState('');
   const [notice, setNotice] = useState('');
+  const [confirmPurge, setConfirmPurge] = useState(false);
+  const [purging, setPurging] = useState(false);
 
   // Count active patients per room
   const activePatients = patients.filter((p) => p.status === 'in');
@@ -508,6 +512,65 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div className="flex items-center gap-2 p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs">
               <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
               <span>{notice}</span>
+            </div>
+          )}
+
+          {/* Reset clinical data for production */}
+          {onPurgeAllPatients && (
+            <div className="p-3.5 rounded-xl bg-red-50/70 border border-red-200 space-y-2.5">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-bold text-sm text-red-900 flex items-center gap-1.5">
+                    <Trash2 className="w-4 h-4 text-red-600" />
+                    Làm sạch dữ liệu bệnh nhân
+                  </h3>
+                  <p className="text-[11px] text-red-800/80 mt-0.5">
+                    Xóa toàn bộ bệnh nhân ({patients.length} ca), DHST, đường huyết và báo cáo trực để bắt đầu vận hành thực (giữ lại cài đặt phòng, giường, bác sĩ).
+                  </p>
+                </div>
+              </div>
+
+              {!confirmPurge ? (
+                <button
+                  type="button"
+                  onClick={() => setConfirmPurge(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white hover:bg-red-100 text-red-700 border border-red-300 text-xs font-bold transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Xóa toàn bộ dữ liệu bệnh nhân...</span>
+                </button>
+              ) : (
+                <div className="flex flex-wrap items-center gap-2 p-2.5 rounded-xl bg-white border border-red-300">
+                  <span className="text-[11px] font-bold text-red-900 flex-1 min-w-[180px]">
+                    Xác nhận xóa vĩnh viễn toàn bộ {patients.length} hồ sơ bệnh nhân?
+                  </span>
+                  <button
+                    type="button"
+                    disabled={purging}
+                    onClick={() => setConfirmPurge(false)}
+                    className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    disabled={purging}
+                    onClick={async () => {
+                      setPurging(true);
+                      try {
+                        await onPurgeAllPatients();
+                        setConfirmPurge(false);
+                        setNotice('Đã xóa sạch toàn bộ dữ liệu bệnh nhân trên hệ thống.');
+                      } finally {
+                        setPurging(false);
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-bold cursor-pointer disabled:opacity-50"
+                  >
+                    {purging ? 'Đang xóa...' : 'Xác nhận xóa sạch'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 

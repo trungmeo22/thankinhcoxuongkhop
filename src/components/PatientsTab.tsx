@@ -10,7 +10,8 @@ import {
   ageText,
   KIND_LABELS,
   fold,
-  isNewAdmitted
+  isNewAdmitted,
+  byRoom
 } from '../lib/constants';
 import { Search, Plus, Edit2, HeartPulse, CalendarPlus, LogOut, ArrowLeft, Clock, ChevronRight, X } from 'lucide-react';
 import { PatientDetailView } from './PatientDetailView';
@@ -110,9 +111,13 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
   };
 
   const activePatients = patients.filter((p) => isIn(p, now)).filter(match);
-  const newPatients = activePatients.filter((p) => isNewAdmitted(p.admitAt, now));
+  const newPatients = activePatients
+    .filter((p) => isNewAdmitted(p.admitAt, now))
+    .sort((a, b) => byRoom(a, b) || a.name.localeCompare(b.name, 'vi'));
   const newIds = new Set(newPatients.map((p) => p.id));
-  const olderPatients = activePatients.filter((p) => !newIds.has(p.id));
+  const olderPatients = activePatients
+    .filter((p) => !newIds.has(p.id))
+    .sort((a, b) => byRoom(a, b) || a.name.localeCompare(b.name, 'vi'));
 
   // Scheduled for discharge list (patients with scheduled discharge in the future)
   const scheduledDischargePatients = activePatients

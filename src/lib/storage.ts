@@ -89,8 +89,8 @@ export interface AppStateData {
   doctors?: string[];
 }
 
-const LOCAL_STORAGE_KEY = 'cxk_local_database_v3';
-const LEGACY_STORAGE_KEY = 'cxk_local_database_v2';
+const LOCAL_STORAGE_KEY = 'cxk_local_database_v4';
+const LEGACY_KEYS = ['cxk_local_database_v3', 'cxk_local_database_v2'];
 const LOCAL_PW_KEY = 'cxk_local_auth_password';
 const LOCAL_SESSION_KEY = 'cxk_local_authenticated';
 
@@ -114,9 +114,25 @@ export function setLocalAuthenticated(auth: boolean) {
   }
 }
 
+export function clearLocalClinicalData() {
+  try {
+    LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
+    saveLocalData({
+      patients: [],
+      recs: [],
+      scheds: [],
+      reports: [],
+      glucoseRecords: [],
+    });
+  } catch (e) {
+    console.warn('Could not clear local clinical data', e);
+  }
+}
+
 export function getInitialLocalData(): AppStateData {
   try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+    LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
+    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed.patients)) {
