@@ -13,7 +13,7 @@ import {
   isNewAdmitted,
   byRoom
 } from '../lib/constants';
-import { Search, Plus, Edit2, HeartPulse, CalendarPlus, LogOut, ArrowLeft, Clock, ChevronRight, X } from 'lucide-react';
+import { Search, Plus, Edit2, HeartPulse, CalendarPlus, LogOut, ArrowLeft, Clock, ChevronRight, X, Trash2, AlertTriangle } from 'lucide-react';
 import { PatientDetailView } from './PatientDetailView';
 
 interface PatientsTabProps {
@@ -36,6 +36,7 @@ interface PatientsTabProps {
   selectedPatientId?: number | null;
   onSelectPatientId?: (id: number | null) => void;
   onCancelDischarge?: (patientId: number) => void;
+  onDeletePatient?: (patientId: number) => void | Promise<void>;
   onSelectTab?: (tab: any) => void;
   onGoBack?: () => void;
 }
@@ -60,12 +61,15 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
   selectedPatientId,
   onSelectPatientId,
   onCancelDischarge,
+  onDeletePatient,
   onSelectTab,
   onGoBack,
 }) => {
   const [q, setQ] = useState('');
   const [showOut, setShowOut] = useState(initialShowDischarged);
   const [internalSelectedPatientId, setInternalSelectedPatientId] = useState<number | null>(null);
+  const [deleteTargetPatient, setDeleteTargetPatient] = useState<Patient | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const activeSelectedPatientId = selectedPatientId !== undefined ? selectedPatientId : internalSelectedPatientId;
   const setSelectedPatientId = (id: number | null) => {
@@ -358,15 +362,96 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
                       <button
                         type="button"
                         onClick={() => onOpenDischarge(p)}
-                        className="px-2.5 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 text-xs font-semibold text-gray-700 transition-colors"
+                        className="px-2.5 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 text-xs font-semibold text-gray-700 transition-colors cursor-pointer"
                       >
                         Sửa
                       </button>
+                      {onDeletePatient && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTargetPatient(p)}
+                          className="p-1.5 rounded-lg border border-red-200 bg-red-50/70 hover:bg-red-100 text-red-600 transition-colors cursor-pointer"
+                          title="Xóa bệnh nhân"
+                          aria-label={`Xóa bệnh nhân ${p.name}`}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
               })
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Delete Patient Confirmation Modal */}
+      {deleteTargetPatient && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => !deleting && setDeleteTargetPatient(null)}
+        >
+          <div
+            className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-[#DDE1DC] overflow-hidden animate-in zoom-in-95 duration-150"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-4 border-b border-[#EEF0ED] flex items-center justify-between bg-red-50/70">
+              <div className="flex items-center gap-2.5 text-red-800">
+                <div className="w-9 h-9 rounded-xl bg-red-100 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <h3 className="text-sm sm:text-base font-bold">Xác nhận xóa bệnh nhân</h3>
+              </div>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteTargetPatient(null)}
+                className="p-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-white/70 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3 text-xs sm:text-sm text-[#2B3531]">
+              <p>
+                Bạn có chắc chắn muốn xóa bệnh nhân{' '}
+                <strong className="text-[#0F2F2A]">{deleteTargetPatient.name}</strong>{' '}
+                (Phòng <strong>{deleteTargetPatient.room}</strong> · {ageText(deleteTargetPatient)}) khỏi danh sách không?
+              </p>
+              <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-xl p-2.5">
+                Lưu ý: Thao tác này sẽ xóa vĩnh viễn hồ sơ bệnh nhân cùng các bản ghi DHST, đường huyết và lịch chỉ định liên quan.
+              </p>
+            </div>
+
+            <div className="px-5 py-3.5 border-t border-[#EEF0ED] bg-[#F9FAF9] flex items-center justify-end gap-2">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteTargetPatient(null)}
+                className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-semibold transition-colors cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={async () => {
+                  if (!onDeletePatient) return;
+                  setDeleting(true);
+                  try {
+                    await onDeletePatient(deleteTargetPatient.id);
+                    setDeleteTargetPatient(null);
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition-colors shadow-xs cursor-pointer disabled:opacity-50 active:scale-95"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{deleting ? 'Đang xóa...' : 'Chắc chắn xóa'}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -446,6 +531,17 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
           >
             Sửa
           </button>
+          {onDeletePatient && (
+            <button
+              type="button"
+              onClick={() => setDeleteTargetPatient(p)}
+              className="p-1.5 rounded-xl border border-red-200 bg-white hover:bg-red-50 text-red-600 transition-colors cursor-pointer shadow-xs active:scale-95"
+              title="Xóa bệnh nhân"
+              aria-label={`Xóa bệnh nhân ${p.name}`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
     );
@@ -526,6 +622,18 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
             <LogOut className="w-3.5 h-3.5" />
             <span>{isPending ? 'Sửa báo ra' : 'Ra viện'}</span>
           </button>
+          {onDeletePatient && (
+            <button
+              type="button"
+              onClick={() => setDeleteTargetPatient(p)}
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl border border-red-200 bg-red-50/70 hover:bg-red-100 text-red-600 text-xs font-semibold transition-colors cursor-pointer active:scale-95"
+              title="Xóa bệnh nhân khỏi danh sách"
+              aria-label={`Xóa bệnh nhân ${p.name}`}
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Xóa</span>
+            </button>
+          )}
         </div>
       </div>
     );

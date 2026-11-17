@@ -571,6 +571,48 @@ export default function App() {
     setDischargeTargetPatient(null);
   };
 
+  const handleDeletePatient = async (patientId: number) => {
+    setSyncStatus('saving');
+    const nextPatients = patients.filter((p) => p.id !== patientId);
+    const removedRecs = recs.filter((r) => r.pid === patientId);
+    const nextRecs = recs.filter((r) => r.pid !== patientId);
+    const removedScheds = scheds.filter((s) => s.patientId === patientId);
+    const nextScheds = scheds.filter((s) => s.patientId !== patientId);
+    const removedGlucose = glucoseRecords.filter((g) => g.patientId === patientId);
+    const nextGlucose = glucoseRecords.filter((g) => g.patientId !== patientId);
+
+    setPatients(nextPatients);
+    setRecs(nextRecs);
+    setScheds(nextScheds);
+    setGlucoseRecords(nextGlucose);
+    if (selectedPatientId === patientId) {
+      setSelectedPatientId(null);
+    }
+
+    saveLocalData({
+      patients: nextPatients,
+      recs: nextRecs,
+      scheds: nextScheds,
+      reports,
+      glucoseRecords: nextGlucose,
+      beds,
+      rooms,
+    });
+
+    try {
+      await Promise.all([
+        deletePatientFromFirestore(patientId),
+        ...removedRecs.map((r) => deleteRecFromFirestore(r.id)),
+        ...removedScheds.map((s) => deleteSchedFromFirestore(s.id)),
+        ...removedGlucose.map((g) => deleteGlucoseFromFirestore(g.id)),
+      ]);
+    } catch (e) {
+      console.warn('Delete patient firestore error:', e);
+    }
+
+    setSyncStatus('ok');
+  };
+
   const handleSaveReport = async (report: DutyReport) => {
     setSyncStatus('saving');
     const exists = reports.some((r) => r.id === report.id);
@@ -795,6 +837,7 @@ export default function App() {
               setDischargeTargetPatient(p);
               setDischargeModalOpen(true);
             }}
+            onDeletePatient={handleDeletePatient}
             onAddTreatment={handleAddTreatment}
             onSaveVitalRecord={handleSaveVitalRecord}
             onDeleteVitalRecord={handleDeleteVitalRecord}
