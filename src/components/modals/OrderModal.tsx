@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Patient, ScheduleItem, ProcedureType } from '../../types';
 import { SITES, TYPE_LABELS, isoDay, ageText, fold, uid, dm, fromIso } from '../../lib/constants';
-import { X, Calendar, Clock, AlertCircle, Search, Syringe, Zap } from 'lucide-react';
+import { X, AlertCircle, Search, Syringe, Zap, Loader2 } from 'lucide-react';
 
 interface OrderModalProps {
   initialPatient?: Patient | null;
   patients: Patient[];
   scheds: ScheduleItem[];
   onClose: () => void;
-  onSave: (schedule: ScheduleItem) => void;
+  onSave: (schedule: ScheduleItem) => void | Promise<void>;
 }
 
 export const OrderModal: React.FC<OrderModalProps> = ({
@@ -28,6 +28,9 @@ export const OrderModal: React.FC<OrderModalProps> = ({
   const [who, setWho] = useState('');
   const [note, setNote] = useState('');
   const [err, setErr] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const draftIdRef = useRef<number>(uid());
 
   const selectedPatient = patients.find((p) => p.id === selectedPid);
 
@@ -40,8 +43,10 @@ export const OrderModal: React.FC<OrderModalProps> = ({
 
   const sitePresets = SITES[type];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+
     if (!selectedPid) {
       setErr('Vui lòng chọn bệnh nhân.');
       return;
@@ -70,8 +75,11 @@ export const OrderModal: React.FC<OrderModalProps> = ({
     }
 
     setErr('');
+    submittingRef.current = true;
+    setIsSubmitting(true);
+
     const newSchedule: ScheduleItem = {
-      id: uid(),
+      id: draftIdRef.current,
       type,
       patientId: selectedPid,
       site: site.trim(),
@@ -82,7 +90,13 @@ export const OrderModal: React.FC<OrderModalProps> = ({
       done: false
     };
 
-    onSave(newSchedule);
+    try {
+      await Promise.resolve(onSave(newSchedule));
+    } catch {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+      setErr('Không thể lưu dữ liệu. Vui lòng thử lại.');
+    }
   };
 
   return (
@@ -99,15 +113,18 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           </div>
           <button
             type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+            disabled={isSubmitting}
+            onClick={() => {
+              if (!isSubmitting) onClose();
+            }}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 transition-colors cursor-pointer disabled:cursor-not-allowed"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form with scrollable body and fixed footer */}
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden text-xs">
+        <form onSubmit={handleSubmit} aria-busy={isSubmitting} className="flex flex-col flex-1 min-h-0 overflow-hidden text-xs">
           <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-5 space-y-3.5">
             {/* Type Toggle Tabs */}
             <div className="grid grid-cols-2 gap-2 bg-[#F3F4F1] p-1 rounded-xl">
@@ -299,16 +316,22 @@ export const OrderModal: React.FC<OrderModalProps> = ({
           <div className="flex items-center justify-end gap-2.5 px-5 py-3 border-t border-[#EEF0ED] bg-[#F9FAF9] shrink-0">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors cursor-pointer"
+              disabled={isSubmitting}
+              onClick={() => {
+                if (!isSubmitting) onClose();
+              }}
+              className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+              className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] disabled:opacity-60 text-white font-bold transition-all shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
             >
-              Lưu chỉ định
+              {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>{isSubmitting ? 'Đang lưu...' : 'Lưu chỉ định'}</span>
             </button>
           </div>
         </form>

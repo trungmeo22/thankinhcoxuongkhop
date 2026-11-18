@@ -154,13 +154,15 @@ export function cleanForFirestore<T>(data: T): any {
 }
 
 // Data synchronization helpers
-export async function savePatientToFirestore(p: Patient) {
+export async function savePatientToFirestore(p: Patient): Promise<boolean> {
   const path = `${COLLECTIONS.PATIENTS}/${p.id}`;
   try {
     const cleaned = cleanForFirestore(p);
     await setDoc(doc(db, COLLECTIONS.PATIENTS, String(p.id)), cleaned);
+    return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
+    return false;
   }
 }
 
@@ -173,13 +175,15 @@ export async function deletePatientFromFirestore(id: number) {
   }
 }
 
-export async function saveRecToFirestore(r: VitalRecord) {
+export async function saveRecToFirestore(r: VitalRecord): Promise<boolean> {
   const path = `${COLLECTIONS.RECS}/${r.id}`;
   try {
     const cleaned = cleanForFirestore(r);
     await setDoc(doc(db, COLLECTIONS.RECS, String(r.id)), cleaned);
+    return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
+    return false;
   }
 }
 
@@ -192,12 +196,14 @@ export async function deleteRecFromFirestore(id: number) {
   }
 }
 
-export async function saveSchedToFirestore(s: ScheduleItem) {
+export async function saveSchedToFirestore(s: ScheduleItem): Promise<boolean> {
   const path = `${COLLECTIONS.SCHEDS}/${s.id}`;
   try {
     await setDoc(doc(db, COLLECTIONS.SCHEDS, String(s.id)), cleanForFirestore(s));
+    return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
+    return false;
   }
 }
 
@@ -210,13 +216,15 @@ export async function deleteSchedFromFirestore(id: number) {
   }
 }
 
-export async function saveReportToFirestore(rep: DutyReport) {
+export async function saveReportToFirestore(rep: DutyReport): Promise<boolean> {
   const path = `${COLLECTIONS.REPORTS}/${rep.id}`;
   try {
     const cleaned = cleanForFirestore(rep);
     await setDoc(doc(db, COLLECTIONS.REPORTS, String(rep.id)), cleaned);
+    return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
+    return false;
   }
 }
 
@@ -226,6 +234,7 @@ export async function deleteReportFromFirestore(id: number) {
     await deleteDoc(doc(db, COLLECTIONS.REPORTS, String(id)));
   } catch (err) {
     handleFirestoreError(err, OperationType.DELETE, path);
+    return false;
   }
 }
 
@@ -239,12 +248,14 @@ export async function saveSettingsToFirestore(settings: { beds: number; rooms?: 
   }
 }
 
-export async function saveGlucoseToFirestore(g: GlucoseRecord) {
+export async function saveGlucoseToFirestore(g: GlucoseRecord): Promise<boolean> {
   const path = `${COLLECTIONS.GLUCOSE}/${g.id}`;
   try {
     await setDoc(doc(db, COLLECTIONS.GLUCOSE, String(g.id)), cleanForFirestore(g));
+    return true;
   } catch (err) {
     handleFirestoreError(err, OperationType.WRITE, path);
+    return false;
   }
 }
 

@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { GlucoseRecord, GlucoseSlot } from '../../types';
 import { isoDay, uid, DEFAULT_INSULINS } from '../../lib/constants';
-import { X, Syringe, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { X, Syringe, Clock, AlertCircle, Loader2 } from 'lucide-react';
 
 interface GlucoseRecordModalProps {
   initialRecord?: GlucoseRecord | null;
@@ -10,7 +10,7 @@ interface GlucoseRecordModalProps {
   patientRoom: string;
   insulinList?: string[];
   onClose: () => void;
-  onSave: (record: GlucoseRecord) => void;
+  onSave: (record: GlucoseRecord) => void | Promise<void>;
 }
 
 export const GlucoseRecordModal: React.FC<GlucoseRecordModalProps> = ({
@@ -47,9 +47,15 @@ export const GlucoseRecordModal: React.FC<GlucoseRecordModalProps> = ({
   });
   const [note, setNote] = useState<string>(initialRecord?.note || '');
   const [err, setErr] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const draftIdRef = useRef<number>(initialRecord?.id || uid());
+  const draftCreatedAtRef = useRef<number>(initialRecord?.createdAt || now);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+
     const val = glucoseValue.trim().replace(',', '.');
     if (!val) {
       setErr('Vui lòng nhập chỉ số đường huyết.');
@@ -71,13 +77,17 @@ export const GlucoseRecordModal: React.FC<GlucoseRecordModalProps> = ({
       finalTime = customTime.trim() as any;
     }
 
+    setErr('');
+    submittingRef.current = true;
+    setIsSubmitting(true);
+
     const finalInsulinType =
       selectedInsulin === '__custom__'
         ? customInsulin.trim()
         : selectedInsulin.trim();
 
     const record: GlucoseRecord = {
-      id: initialRecord?.id || uid(),
+      id: draftIdRef.current,
       patientId,
       date,
       time: finalTime,
@@ -86,10 +96,16 @@ export const GlucoseRecordModal: React.FC<GlucoseRecordModalProps> = ({
       insulinDose: insulinDose.trim(),
       insulinType: finalInsulinType,
       note: note.trim(),
-      createdAt: initialRecord?.createdAt || now,
+      createdAt: draftCreatedAtRef.current,
     };
 
-    onSave(record);
+    try {
+      await Promise.resolve(onSave(record));
+    } catch {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+      setErr('Không thể lưu dữ liệu. Vui lòng thử lại.');
+    }
   };
 
   return (
@@ -112,15 +128,18 @@ export const GlucoseRecordModal: React.FC<GlucoseRecordModalProps> = ({
           </div>
           <button
             type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+            disabled={isSubmitting}
+            onClick={() => {
+              if (!isSubmitting) onClose();
+            }}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 transition-colors cursor-pointer disabled:cursor-not-allowed"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form with scrollable body and fixed footer */}
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden text-xs">
+        <form onSubmit={handleSubmit} aria-busy={isSubmitting} className="flex flex-col flex-1 min-h-0 overflow-hidden text-xs">
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-5 space-y-3.5">
             {/* Ngày test & Mốc giờ test - 2 cột tiết kiệm không gian */}
@@ -299,16 +318,22 @@ export const GlucoseRecordModal: React.FC<GlucoseRecordModalProps> = ({
           <div className="flex items-center justify-end gap-2.5 px-5 py-3 border-t border-[#EEF0ED] bg-[#F9FAF9] shrink-0">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors cursor-pointer"
+              disabled={isSubmitting}
+              onClick={() => {
+                if (!isSubmitting) onClose();
+              }}
+              className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+              className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] disabled:opacity-60 text-white font-bold transition-all shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
             >
-              {isEdit ? 'Lưu thay đổi' : 'Lưu kết quả'}
+              {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>{isSubmitting ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi' : 'Lưu kết quả'}</span>
             </button>
           </div>
         </form>

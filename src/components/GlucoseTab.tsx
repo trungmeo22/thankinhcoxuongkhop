@@ -32,7 +32,7 @@ interface GlucoseTabProps {
   patients: Patient[];
   glucoseRecords: GlucoseRecord[];
   insulins?: string[];
-  onSaveGlucoseRecord: (record: GlucoseRecord) => void;
+  onSaveGlucoseRecord: (record: GlucoseRecord) => void | Promise<void>;
   onDeleteGlucoseRecord: (id: number) => void;
   onOpenPatientDetail?: (p: Patient) => void;
   onGoBack?: () => void;
@@ -675,8 +675,8 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
             setPreselectedPid(undefined);
             setPreselectedDate(undefined);
           }}
-          onSave={(record) => {
-            onSaveGlucoseRecord(record);
+          onSave={async (record) => {
+            await Promise.resolve(onSaveGlucoseRecord(record));
             // Tự động mở rộng bệnh nhân vừa được ghi nhận test
             setExpandedIds((prev) => new Set([...prev, record.patientId]));
             setDeptModalOpen(false);
@@ -695,8 +695,8 @@ export const GlucoseTab: React.FC<GlucoseTabProps> = ({
           patientRoom={patients.find((p) => p.id === editingRecord.patientId)?.room || ''}
           insulinList={insulins}
           onClose={() => setEditingRecord(null)}
-          onSave={(rec) => {
-            onSaveGlucoseRecord(rec);
+          onSave={async (rec) => {
+            await Promise.resolve(onSaveGlucoseRecord(rec));
             setEditingRecord(null);
           }}
         />

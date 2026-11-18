@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Patient } from '../../types';
-import { dtLocal, DEFAULT_ROOMS, DEFAULT_DOCTORS } from '../../lib/constants';
-import { X, Clock, AlertCircle } from 'lucide-react';
+import { dtLocal, DEFAULT_ROOMS, DEFAULT_DOCTORS, uid } from '../../lib/constants';
+import { X, Clock, AlertCircle, Loader2 } from 'lucide-react';
 
 interface AdmitModalProps {
   patient?: Patient | null;
   rooms?: string[];
   doctors?: string[];
   onClose: () => void;
-  onSave: (patientData: Partial<Patient>) => void;
+  onSave: (patientData: Partial<Patient>) => void | Promise<void>;
 }
 
 export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT_ROOMS, doctors = DEFAULT_DOCTORS, onClose, onSave }) => {
@@ -32,9 +32,14 @@ export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT
   const [rr, setRr] = useState(patient?.rr || patient?.av?.rr || '');
   const [note, setNote] = useState(patient?.note || '');
   const [err, setErr] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const draftIdRef = useRef<number>(patient?.id || uid());
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+
     if (!name.trim()) {
       setErr('Vui lòng nhập họ tên bệnh nhân.');
       return;
@@ -51,26 +56,38 @@ export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT
     }
 
     setErr('');
-    onSave({
-      name: name.trim(),
-      age: age.trim(),
-      room: room.trim(),
-      doctor: doctor.trim(),
-      admitAt: at,
-      pulse: pulse.trim(),
-      bp: bp.trim(),
-      temp: temp.trim(),
-      spo2: spo2.trim(),
-      rr: rr.trim(),
-      note: note.trim(),
-      av: {
-        pulse: pulse.trim(),
-        bp: bp.trim(),
-        temp: temp.trim(),
-        spo2: spo2.trim(),
-        rr: rr.trim(),
-      }
-    });
+    submittingRef.current = true;
+    setIsSubmitting(true);
+
+    try {
+      await Promise.resolve(
+        onSave({
+          id: draftIdRef.current,
+          name: name.trim(),
+          age: age.trim(),
+          room: room.trim(),
+          doctor: doctor.trim(),
+          admitAt: at,
+          pulse: pulse.trim(),
+          bp: bp.trim(),
+          temp: temp.trim(),
+          spo2: spo2.trim(),
+          rr: rr.trim(),
+          note: note.trim(),
+          av: {
+            pulse: pulse.trim(),
+            bp: bp.trim(),
+            temp: temp.trim(),
+            spo2: spo2.trim(),
+            rr: rr.trim(),
+          },
+        })
+      );
+    } catch {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+      setErr('Không thể lưu dữ liệu. Vui lòng thử lại.');
+    }
   };
 
   return (
@@ -83,15 +100,18 @@ export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT
           </h2>
           <button
             type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+            disabled={isSubmitting}
+            onClick={() => {
+              if (!isSubmitting) onClose();
+            }}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 transition-colors cursor-pointer disabled:cursor-not-allowed"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Form with scrollable body and fixed footer */}
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden text-xs">
+        <form onSubmit={handleSubmit} aria-busy={isSubmitting} className="flex flex-col flex-1 min-h-0 overflow-hidden text-xs">
           {/* Scrollable content */}
           <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-5 space-y-3.5">
             {/* Admission Time */}
@@ -263,16 +283,24 @@ export const AdmitModal: React.FC<AdmitModalProps> = ({ patient, rooms = DEFAULT
           <div className="flex items-center justify-end gap-2.5 px-5 py-3 border-t border-[#EEF0ED] bg-[#F9FAF9] shrink-0">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors cursor-pointer"
+              onClick={() => {
+                if (!isSubmitting) onClose();
+              }}
+              disabled={isSubmitting}
+              className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+              className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] disabled:opacity-60 text-white font-bold transition-all shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
             >
-              {isEdit ? 'Lưu thay đổi' : 'Lưu nhập viện'}
+              {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>
+                {isSubmitting ? 'Đang lưu...' : isEdit ? 'Lưu thay đổi' : 'Lưu nhập viện'}
+              </span>
             </button>
           </div>
         </form>

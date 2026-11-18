@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Patient, DischargeKind } from '../../types';
 import { KIND_LABELS, dtLocal, hm, dmy, ageText } from '../../lib/constants';
-import { X, LogOut, Clock, AlertCircle, ArrowRightLeft } from 'lucide-react';
+import { X, AlertCircle, Loader2 } from 'lucide-react';
 
 interface DischargeModalProps {
   patient: Patient;
   onClose: () => void;
-  onSave: (kind: DischargeKind, time: number, note: string) => void;
-  onCancelDischarge: (patientId: number) => void;
+  onSave: (kind: DischargeKind, time: number, note: string) => void | Promise<void>;
+  onCancelDischarge: (patientId: number) => void | Promise<void>;
 }
 
 export const DischargeModal: React.FC<DischargeModalProps> = ({
@@ -27,11 +27,15 @@ export const DischargeModal: React.FC<DischargeModalProps> = ({
   const [time, setTime] = useState(patient.outAt ? dtLocal(patient.outAt) : getTomorrow830());
   const [note, setNote] = useState(patient.outNote || '');
   const [err, setErr] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
 
   const isAlreadyReported = patient.status === 'out';
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+
     const t = new Date(time).getTime();
     if (isNaN(t)) {
       setErr('Vui lòng chọn thời gian ra viện / chuyển viện hợp lệ.');
@@ -43,7 +47,29 @@ export const DischargeModal: React.FC<DischargeModalProps> = ({
     }
 
     setErr('');
-    onSave(kind, t, note.trim());
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      await Promise.resolve(onSave(kind, t, note.trim()));
+    } catch {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+      setErr('Không thể lưu dữ liệu. Vui lòng thử lại.');
+    }
+  };
+
+  const handleCancelClick = async () => {
+    if (submittingRef.current) return;
+    setErr('');
+    submittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      await Promise.resolve(onCancelDischarge(patient.id));
+    } catch {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+      setErr('Không thể hủy báo ra viện. Vui lòng thử lại.');
+    }
   };
 
   const getPlaceholder = () => {
@@ -66,14 +92,17 @@ export const DischargeModal: React.FC<DischargeModalProps> = ({
           </div>
           <button
             type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+            disabled={isSubmitting}
+            onClick={() => {
+              if (!isSubmitting) onClose();
+            }}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 transition-colors cursor-pointer disabled:cursor-not-allowed"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden text-xs">
+        <form onSubmit={handleSubmit} aria-busy={isSubmitting} className="flex flex-col flex-1 min-h-0 overflow-hidden text-xs">
           <div className="flex-1 overflow-y-auto min-h-0 p-4 sm:p-5 space-y-3.5">
           {/* Discharge Kind Chips */}
           <div>
@@ -159,8 +188,9 @@ export const DischargeModal: React.FC<DischargeModalProps> = ({
             {isAlreadyReported ? (
               <button
                 type="button"
-                onClick={() => onCancelDischarge(patient.id)}
-                className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-semibold transition-colors text-xs cursor-pointer"
+                disabled={isSubmitting}
+                onClick={handleCancelClick}
+                className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-700 font-semibold transition-colors text-xs cursor-pointer disabled:cursor-not-allowed"
               >
                 Hủy báo ra viện (Tiếp tục điều trị)
               </button>
@@ -171,16 +201,22 @@ export const DischargeModal: React.FC<DischargeModalProps> = ({
             <div className="flex items-center gap-2 ml-auto">
               <button
                 type="button"
-                onClick={onClose}
-                className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors cursor-pointer"
+                disabled={isSubmitting}
+                onClick={() => {
+                  if (!isSubmitting) onClose();
+                }}
+                className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed"
               >
                 Đóng
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 rounded-xl bg-[#A3360F] hover:bg-[#86290A] text-white font-bold transition-all shadow-xs cursor-pointer active:scale-95"
+                disabled={isSubmitting}
+                aria-busy={isSubmitting}
+                className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl bg-[#A3360F] hover:bg-[#86290A] disabled:opacity-60 text-white font-bold transition-all shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
               >
-                Lưu báo ra viện
+                {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>{isSubmitting ? 'Đang lưu...' : 'Lưu báo ra viện'}</span>
               </button>
             </div>
           </div>

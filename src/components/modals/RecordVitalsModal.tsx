@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Patient, VitalRecord } from '../../types';
 import { hm, dmy, ageText, fold, hasVit, uid } from '../../lib/constants';
-import { X, Clock, AlertCircle, HeartPulse, Search } from 'lucide-react';
+import { X, Clock, AlertCircle, HeartPulse, Search, Loader2 } from 'lucide-react';
 import { ExpandableTreatmentInput } from '../ExpandableTreatmentInput';
 
 interface RecordVitalsModalProps {
@@ -9,7 +9,7 @@ interface RecordVitalsModalProps {
   initialRecord?: VitalRecord | null;
   patients: Patient[];
   onClose: () => void;
-  onSave: (record: VitalRecord, updatedPatientVitals: Partial<Patient>) => void;
+  onSave: (record: VitalRecord, updatedPatientVitals: Partial<Patient>) => void | Promise<void>;
 }
 
 export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
@@ -35,8 +35,12 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
     initialRecord?.tx?.map((t) => t.text).join('\n') || ''
   );
   const [err, setErr] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const draftIdRef = useRef<number>(initialRecord ? initialRecord.id : uid());
+  const draftAtRef = useRef<number>(initialRecord ? initialRecord.at : Date.now());
 
-  const now = Date.now();
+  const now = draftAtRef.current;
   const selectedPatient = patients.find((p) => p.id === selectedPid);
 
   // Suggestions for patient picker
@@ -54,8 +58,10 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
+
     if (!selectedPid) {
       setErr('Vui lòng chọn bệnh nhân cần ghi nhận.');
       return;
@@ -68,8 +74,11 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
     }
 
     setErr('');
-    const recordId = initialRecord ? initialRecord.id : uid();
-    const recordAt = initialRecord ? initialRecord.at : now;
+    submittingRef.current = true;
+    setIsSubmitting(true);
+
+    const recordId = draftIdRef.current;
+    const recordAt = draftAtRef.current;
 
     let txItems = initialRecord?.tx || [];
     if (txText.trim()) {
@@ -100,7 +109,13 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
       tx: txItems
     };
 
-    onSave(newRecord, vitalsObj);
+    try {
+      await Promise.resolve(onSave(newRecord, vitalsObj));
+    } catch {
+      submittingRef.current = false;
+      setIsSubmitting(false);
+      setErr('Không thể lưu dữ liệu. Vui lòng thử lại.');
+    }
   };
 
   return (
@@ -125,8 +140,11 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
           </div>
           <button
             type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+            disabled={isSubmitting}
+            onClick={() => {
+              if (!isSubmitting) onClose();
+            }}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 disabled:opacity-40 transition-colors cursor-pointer disabled:cursor-not-allowed"
             title="Đóng cửa sổ"
           >
             <X className="w-5 h-5" />
@@ -134,7 +152,7 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
         </div>
 
         {/* Form with Scrollable Body and Fixed Footer */}
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 text-xs">
+        <form onSubmit={handleSubmit} aria-busy={isSubmitting} className="flex flex-col flex-1 min-h-0 text-xs">
           {/* Scrollable Form Content */}
           <div className="flex-1 overflow-y-auto px-4 py-3 sm:px-5 sm:py-3.5 space-y-3 min-h-0">
             {/* Time Banner */}
@@ -326,16 +344,22 @@ export const RecordVitalsModal: React.FC<RecordVitalsModalProps> = ({
           <div className="shrink-0 px-4 py-3 sm:px-5 sm:py-3.5 border-t border-[#EEF0ED] bg-[#F9FAF9] flex items-center justify-end gap-2">
             <button
               type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold transition-colors cursor-pointer"
+              disabled={isSubmitting}
+              onClick={() => {
+                if (!isSubmitting) onClose();
+              }}
+              className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 font-semibold transition-colors cursor-pointer disabled:cursor-not-allowed"
             >
               Hủy
             </button>
             <button
               type="submit"
-              className="px-5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] text-white font-semibold transition-colors shadow-xs cursor-pointer active:scale-95"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+              className="inline-flex items-center justify-center gap-1.5 px-5 py-2 rounded-xl bg-[#0E6B5E] hover:bg-[#0A5248] disabled:opacity-60 text-white font-semibold transition-colors shadow-xs cursor-pointer disabled:cursor-not-allowed active:scale-95"
             >
-              Lưu kết quả
+              {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>{isSubmitting ? 'Đang lưu...' : 'Lưu kết quả'}</span>
             </button>
           </div>
         </form>

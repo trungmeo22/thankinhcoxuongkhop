@@ -45,9 +45,9 @@ interface PatientDetailViewProps {
   onEditPatient: (p: Patient) => void;
   onOpenRecordVitals: (p: Patient) => void;
   onAddTreatment: (recordId: number, text: string) => void;
-  onSaveVitalRecord?: (record: VitalRecord, updatedPatientVitals: Partial<Patient>) => void;
+  onSaveVitalRecord?: (record: VitalRecord, updatedPatientVitals: Partial<Patient>) => void | Promise<void>;
   onDeleteVitalRecord?: (id: number) => void;
-  onSaveGlucoseRecord: (record: GlucoseRecord) => void;
+  onSaveGlucoseRecord: (record: GlucoseRecord) => void | Promise<void>;
   onDeleteGlucoseRecord: (id: number) => void;
   onOpenOrder: (p: Patient) => void;
   onOpenDischarge: (p: Patient) => void;
@@ -354,8 +354,8 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
             setGlucoseModalOpen(false);
             setEditingGlucoseRecord(null);
           }}
-          onSave={(rec) => {
-            onSaveGlucoseRecord(rec);
+          onSave={async (rec) => {
+            await Promise.resolve(onSaveGlucoseRecord(rec));
             setGlucoseModalOpen(false);
             setEditingGlucoseRecord(null);
           }}
@@ -372,8 +372,8 @@ export const PatientDetailView: React.FC<PatientDetailViewProps> = ({
             setVitalsModalOpen(false);
             setEditingVitalRecord(null);
           }}
-          onSave={(record, updatedVitals) => {
-            onSaveVitalRecord(record, updatedVitals);
+          onSave={async (record, updatedVitals) => {
+            await Promise.resolve(onSaveVitalRecord(record, updatedVitals));
             setVitalsModalOpen(false);
             setEditingVitalRecord(null);
           }}

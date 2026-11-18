@@ -28,9 +28,9 @@ interface PatientsTabProps {
   onOpenOrder: (p: Patient) => void;
   onOpenDischarge: (p: Patient) => void;
   onAddTreatment: (recordId: number, text: string) => void;
-  onSaveVitalRecord?: (record: VitalRecord, updatedVitals: Partial<Patient>) => void;
+  onSaveVitalRecord?: (record: VitalRecord, updatedVitals: Partial<Patient>) => void | Promise<void>;
   onDeleteVitalRecord?: (id: number) => void;
-  onSaveGlucoseRecord: (record: GlucoseRecord) => void;
+  onSaveGlucoseRecord: (record: GlucoseRecord) => void | Promise<void>;
   onDeleteGlucoseRecord: (id: number) => void;
   initialShowDischarged?: boolean;
   selectedPatientId?: number | null;

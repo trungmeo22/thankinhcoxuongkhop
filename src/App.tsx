@@ -35,7 +35,7 @@ import {
   clearLocalClinicalData,
   DEMO_PATIENT_NAMES
 } from './lib/storage';
-import { uid, isIn, isOut, isoDay } from './lib/constants';
+import { uid, isIn, isOut, isoDay, fold } from './lib/constants';
 import { Header } from './components/Header';
 import { Navigation, TabKey } from './components/Navigation';
 import { DashboardTab } from './components/DashboardTab';
@@ -56,7 +56,7 @@ import { ViewReportModal } from './components/modals/ViewReportModal';
 import { LoginModal } from './components/modals/LoginModal';
 import { SettingsModal } from './components/modals/SettingsModal';
 
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { DEFAULT_ROOMS, DEFAULT_INSULINS, DEFAULT_DOCTORS } from './lib/constants';
 
 export default function App() {
@@ -101,6 +101,9 @@ export default function App() {
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [admitModalOpen, setAdmitModalOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [isSavingPatient, setIsSavingPatient] = useState(false);
+  const savingPatientRef = useRef<boolean>(false);
+  const lastAdmitRef = useRef<{ sig: string; at: number } | null>(null);
 
   const [vitalsModalOpen, setVitalsModalOpen] = useState(false);
   const [vitalsTargetPatient, setVitalsTargetPatient] = useState<Patient | null>(null);
@@ -346,26 +349,62 @@ export default function App() {
 
   // Clinical data updates
   const handleSavePatient = async (patientData: Partial<Patient>) => {
+    if (savingPatientRef.current) {
+      return;
+    }
+
+    const normalizedName = fold(patientData.name || '').trim();
+    const normalizedRoom = fold(patientData.room || '').trim();
+    const normalizedAge = String(patientData.age || '').trim();
+    const normalizedNote = fold(patientData.note || '').trim();
+    const admitAt = patientData.admitAt || Date.now();
+    const admitSig = `${normalizedName}|${normalizedRoom}|${normalizedAge}|${Math.floor(admitAt / 60000)}|${normalizedNote}`;
+
+    if (!editingPatient) {
+      const nowMs = Date.now();
+      if (lastAdmitRef.current && lastAdmitRef.current.sig === admitSig && nowMs - lastAdmitRef.current.at < 15000) {
+        setAdmitModalOpen(false);
+        setEditingPatient(null);
+        return;
+      }
+
+      const duplicateExisting = patients.find(
+        (p) =>
+          (patientData.id != null && p.id === patientData.id) ||
+          (isIn(p, nowMs) &&
+            fold(p.name).trim() === normalizedName &&
+            fold(p.room).trim() === normalizedRoom &&
+            Math.abs(p.admitAt - admitAt) < 60000 &&
+            fold(p.note || '').trim() === normalizedNote)
+      );
+
+      if (duplicateExisting) {
+        setAdmitModalOpen(false);
+        setEditingPatient(null);
+        return;
+      }
+    }
+
+    savingPatientRef.current = true;
+    setIsSavingPatient(true);
     setSyncStatus('saving');
+
     let targetPatient: Patient;
     if (editingPatient) {
       targetPatient = {
         ...editingPatient,
         ...patientData,
+        id: editingPatient.id,
       } as Patient;
-
-      const next = patients.map((p) => (p.id === editingPatient.id ? targetPatient : p));
-      setPatients(next);
-      saveLocalData({ patients: next, recs, scheds, reports, beds, rooms });
     } else {
       targetPatient = {
-        id: uid(),
+        id: patientData.id || uid(),
         name: patientData.name || '',
         age: patientData.age || '',
         room: patientData.room || '',
         doctor: patientData.doctor || '',
         note: patientData.note || '',
-        admitAt: patientData.admitAt || Date.now(),
+        admitAt,
         status: 'in',
         pulse: patientData.pulse,
         bp: patientData.bp,
@@ -374,31 +413,43 @@ export default function App() {
         rr: patientData.rr,
         av: patientData.av,
       };
-
-      const next = [targetPatient, ...patients];
-      setPatients(next);
-      saveLocalData({ patients: next, recs, scheds, reports, beds, rooms });
     }
 
     try {
-      await savePatientToFirestore(targetPatient);
+      const ok = await savePatientToFirestore(targetPatient);
+      if (!ok) {
+        setSyncStatus('err');
+        throw new Error('Save patient to Firestore failed');
+      }
+
+      if (!editingPatient) {
+        lastAdmitRef.current = { sig: admitSig, at: Date.now() };
+      }
+
+      setPatients((prev) => {
+        const exists = prev.some((p) => p.id === targetPatient.id);
+        const next = exists
+          ? prev.map((p) => (p.id === targetPatient.id ? targetPatient : p))
+          : [targetPatient, ...prev];
+        saveLocalData({ patients: next, recs, scheds, reports, glucoseRecords, beds, rooms });
+        return next;
+      });
+
+      setSyncStatus('ok');
+      setAdmitModalOpen(false);
+      setEditingPatient(null);
     } catch (e) {
       console.warn('Save patient firestore error:', e);
+      setSyncStatus('err');
+      throw e;
+    } finally {
+      savingPatientRef.current = false;
+      setIsSavingPatient(false);
     }
-
-    setSyncStatus('ok');
-    setAdmitModalOpen(false);
-    setEditingPatient(null);
   };
 
   const handleSaveVitalRecord = async (record: VitalRecord, updatedVitals: Partial<Patient>) => {
     setSyncStatus('saving');
-    const exists = recs.some((r) => r.id === record.id);
-    const nextRecs = exists
-      ? recs.map((r) => (r.id === record.id ? record : r))
-      : [record, ...recs];
-    setRecs(nextRecs);
-
     const nextPts = patients.map((p) => {
       if (p.id !== record.pid) return p;
       return {
@@ -406,23 +457,42 @@ export default function App() {
         ...updatedVitals,
       };
     });
-    setPatients(nextPts);
-    saveLocalData({ patients: nextPts, recs: nextRecs, scheds, reports, beds });
 
     try {
-      await saveRecToFirestore(record);
+      const recOk = await saveRecToFirestore(record);
+      if (!recOk) {
+        setSyncStatus('err');
+        throw new Error('Save vital record to Firestore failed');
+      }
+
       const updatedPt = nextPts.find((p) => p.id === record.pid);
       if (updatedPt) {
-        await savePatientToFirestore(updatedPt);
+        const ptOk = await savePatientToFirestore(updatedPt);
+        if (!ptOk) {
+          setSyncStatus('err');
+          throw new Error('Update patient vitals to Firestore failed');
+        }
       }
+
+      setRecs((prevRecs) => {
+        const exists = prevRecs.some((r) => r.id === record.id);
+        const nextRecs = exists
+          ? prevRecs.map((r) => (r.id === record.id ? record : r))
+          : [record, ...prevRecs];
+        saveLocalData({ patients: nextPts, recs: nextRecs, scheds, reports, glucoseRecords, beds, rooms });
+        return nextRecs;
+      });
+      setPatients(nextPts);
+
+      setSyncStatus('ok');
+      setVitalsModalOpen(false);
+      setVitalsTargetPatient(null);
+      setEditingVitalRecord(null);
     } catch (e) {
       console.warn('Save vital record firestore error:', e);
+      setSyncStatus('err');
+      throw e;
     }
-
-    setSyncStatus('ok');
-    setVitalsModalOpen(false);
-    setVitalsTargetPatient(null);
-    setEditingVitalRecord(null);
   };
 
   const handleDeleteVitalRecord = async (id: number) => {
@@ -464,19 +534,28 @@ export default function App() {
 
   const handleSaveSchedule = async (schedule: ScheduleItem) => {
     setSyncStatus('saving');
-    const next = [...scheds, schedule];
-    setScheds(next);
-    saveLocalData({ patients, recs, scheds: next, reports, beds });
-
     try {
-      await saveSchedToFirestore(schedule);
+      const ok = await saveSchedToFirestore(schedule);
+      if (!ok) {
+        setSyncStatus('err');
+        throw new Error('Save schedule to Firestore failed');
+      }
+
+      setScheds((prev) => {
+        const exists = prev.some((s) => s.id === schedule.id);
+        const next = exists ? prev.map((s) => (s.id === schedule.id ? schedule : s)) : [...prev, schedule];
+        saveLocalData({ patients, recs, scheds: next, reports, glucoseRecords, beds, rooms });
+        return next;
+      });
+
+      setSyncStatus('ok');
+      setOrderModalOpen(false);
+      setOrderTargetPatient(null);
     } catch (e) {
       console.warn('Save schedule firestore error:', e);
+      setSyncStatus('err');
+      throw e;
     }
-
-    setSyncStatus('ok');
-    setOrderModalOpen(false);
-    setOrderTargetPatient(null);
   };
 
   const handleToggleScheduleDone = async (id: number) => {
@@ -514,61 +593,71 @@ export default function App() {
 
   const handleSaveDischarge = async (kind: DischargeKind, time: number, note: string) => {
     if (!dischargeTargetPatient) return;
-    const targetId = dischargeTargetPatient.id;
-    let updatedPt: Patient | null = null;
+    setSyncStatus('saving');
+    const updatedPt: Patient = {
+      ...dischargeTargetPatient,
+      status: 'out' as const,
+      outAt: time,
+      outKind: kind,
+      outNote: note,
+    };
 
-    const next = patients.map((p) => {
-      if (p.id !== targetId) return p;
-      updatedPt = {
-        ...p,
-        status: 'out' as const,
-        outAt: time,
-        outKind: kind,
-        outNote: note,
-      };
-      return updatedPt;
-    });
-    setPatients(next);
-    saveLocalData({ patients: next, recs, scheds, reports, beds });
-
-    if (updatedPt) {
-      try {
-        await savePatientToFirestore(updatedPt);
-      } catch (e) {
-        console.warn('Save discharge firestore error:', e);
+    try {
+      const ok = await savePatientToFirestore(updatedPt);
+      if (!ok) {
+        setSyncStatus('err');
+        throw new Error('Save discharge to Firestore failed');
       }
-    }
 
-    setDischargeModalOpen(false);
-    setDischargeTargetPatient(null);
+      setPatients((prev) => {
+        const next = prev.map((p) => (p.id === updatedPt.id ? updatedPt : p));
+        saveLocalData({ patients: next, recs, scheds, reports, glucoseRecords, beds, rooms });
+        return next;
+      });
+
+      setSyncStatus('ok');
+      setDischargeModalOpen(false);
+      setDischargeTargetPatient(null);
+    } catch (e) {
+      console.warn('Save discharge firestore error:', e);
+      setSyncStatus('err');
+      throw e;
+    }
   };
 
   const handleCancelDischarge = async (patientId: number) => {
-    let updatedPt: Patient | null = null;
-    const next = patients.map((p) => {
-      if (p.id !== patientId) return p;
-      updatedPt = {
-        ...p,
-        status: 'in' as const,
-        outAt: null,
-        outNote: '',
-        outKind: undefined,
-      };
-      return updatedPt;
-    });
-    setPatients(next);
-    saveLocalData({ patients: next, recs, scheds, reports, beds });
+    const target = patients.find((p) => p.id === patientId);
+    if (!target) return;
+    setSyncStatus('saving');
+    const updatedPt: Patient = {
+      ...target,
+      status: 'in' as const,
+      outAt: null,
+      outNote: '',
+      outKind: undefined,
+    };
 
-    if (updatedPt) {
-      try {
-        await savePatientToFirestore(updatedPt);
-      } catch (e) {
-        console.warn('Cancel discharge firestore error:', e);
+    try {
+      const ok = await savePatientToFirestore(updatedPt);
+      if (!ok) {
+        setSyncStatus('err');
+        throw new Error('Cancel discharge to Firestore failed');
       }
-    }
 
-    setDischargeModalOpen(false);
-    setDischargeTargetPatient(null);
+      setPatients((prev) => {
+        const next = prev.map((p) => (p.id === patientId ? updatedPt : p));
+        saveLocalData({ patients: next, recs, scheds, reports, glucoseRecords, beds, rooms });
+        return next;
+      });
+
+      setSyncStatus('ok');
+      setDischargeModalOpen(false);
+      setDischargeTargetPatient(null);
+    } catch (e) {
+      console.warn('Cancel discharge firestore error:', e);
+      setSyncStatus('err');
+      throw e;
+    }
   };
 
   const handleDeletePatient = async (patientId: number) => {
@@ -692,20 +781,27 @@ export default function App() {
 
   const handleSaveGlucoseRecord = async (record: GlucoseRecord) => {
     setSyncStatus('saving');
-    const exists = glucoseRecords.some((g) => g.id === record.id);
-    const next = exists
-      ? glucoseRecords.map((g) => (g.id === record.id ? record : g))
-      : [record, ...glucoseRecords];
-    setGlucoseRecords(next);
-    saveLocalData({ patients, recs, scheds, reports, glucoseRecords: next, beds, rooms });
-
     try {
-      await saveGlucoseToFirestore(record);
+      const ok = await saveGlucoseToFirestore(record);
+      if (!ok) {
+        setSyncStatus('err');
+        throw new Error('Save glucose record to Firestore failed');
+      }
+
+      setGlucoseRecords((prev) => {
+        const exists = prev.some((g) => g.id === record.id);
+        const next = exists
+          ? prev.map((g) => (g.id === record.id ? record : g))
+          : [record, ...prev];
+        saveLocalData({ patients, recs, scheds, reports, glucoseRecords: next, beds, rooms });
+        return next;
+      });
+      setSyncStatus('ok');
     } catch (e) {
       console.warn('Save glucose record firestore error:', e);
+      setSyncStatus('err');
+      throw e;
     }
-
-    setSyncStatus('ok');
   };
 
   const handleDeleteGlucoseRecord = async (id: number) => {
@@ -926,15 +1022,21 @@ export default function App() {
       {/* Floating Action Button (+) for quick admission */}
       <button
         type="button"
+        disabled={isSavingPatient || admitModalOpen}
         onClick={() => {
+          if (savingPatientRef.current) return;
           setEditingPatient(null);
           setAdmitModalOpen(true);
         }}
-        className="fixed right-5 bottom-5 z-30 w-14 h-14 rounded-full bg-[#E07B2E] hover:bg-[#D06C1F] text-[#1F0E02] flex items-center justify-center shadow-lg hover:shadow-xl transition-all focus:outline-none focus:ring-4 focus:ring-emerald-800/20 active:scale-95 cursor-pointer"
-        title="Khai báo nhập viện"
-        aria-label="Khai báo nhập viện"
+        className="fixed right-5 bottom-5 z-30 w-14 h-14 rounded-full bg-[#E07B2E] hover:bg-[#D06C1F] disabled:opacity-60 text-[#1F0E02] flex items-center justify-center shadow-lg hover:shadow-xl transition-all focus:outline-none focus:ring-4 focus:ring-emerald-800/20 active:scale-95 cursor-pointer disabled:cursor-not-allowed"
+        title={isSavingPatient ? 'Đang lưu bệnh nhân...' : 'Khai báo nhập viện'}
+        aria-label={isSavingPatient ? 'Đang lưu bệnh nhân...' : 'Khai báo nhập viện'}
       >
-        <Plus className="w-7 h-7 stroke-[2.8]" />
+        {isSavingPatient ? (
+          <Loader2 className="w-6 h-6 animate-spin" />
+        ) : (
+          <Plus className="w-7 h-7 stroke-[2.8]" />
+        )}
       </button>
 
       {/* Modals */}
@@ -944,6 +1046,7 @@ export default function App() {
           rooms={rooms}
           doctors={doctors}
           onClose={() => {
+            if (savingPatientRef.current) return;
             setAdmitModalOpen(false);
             setEditingPatient(null);
           }}
