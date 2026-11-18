@@ -249,6 +249,19 @@ const U214_DASHBOARD_CSS = `
   0%{stroke-dashoffset:100}
   100%{stroke-dashoffset:var(--occ-offset)}
 }
+.ux.u214-host .u214-occ-fill{
+  transform-origin:left center;
+}
+.ux.u214-host .u214-card.is-on .u214-occ-fill,
+.ux.u214-host .u214-card:hover .u214-occ-fill,
+.ux.u214-host .u214-card:focus-within .u214-occ-fill{
+  animation:u214-occ-grow .55s cubic-bezier(.3,1.3,.5,1) both;
+}
+@keyframes u214-occ-grow{
+  0%{transform:scaleX(.32)}
+  70%{transform:scaleX(1.03)}
+  100%{transform:scaleX(1)}
+}
 
 /* Shield twin pulse rings inside existing Staff Account card */
 .ux.u214-host .u214-sh{
@@ -313,7 +326,7 @@ const U214_DASHBOARD_CSS = `
   .ux.u214-host .u214-av i{transform:none}
   .ux.u214-host .u214-sr span{transform:scaleX(var(--w))}
   .ux.u214-host .u214-bar{transform:scaleY(var(--h));background:var(--ux-grad)}
-  .ux.u214-host .u214-chart-bar,.ux.u214-host .u214-chart-dot{animation:none!important;transform:none!important}
+  .ux.u214-host .u214-chart-bar,.ux.u214-host .u214-chart-dot,.ux.u214-host .u214-occ-fill{animation:none!important;transform:none!important}
   .ux.u214-host .u214-occ-ring{animation:none!important;stroke-dashoffset:var(--occ-offset)!important}
   .ux.u214-host .u214-chart-line{animation:none!important;stroke-dashoffset:0!important}
   .ux.u214-host .u214-lt{animation:none;transform:none}
@@ -663,19 +676,19 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
         </div>
       </div>
 
-      {/* KPI Cards Grid (Square Bed Occupancy on left + 2 stacked rectangles on right) */}
-      <div className="grid grid-cols-2 grid-rows-2 sm:grid-cols-[176px_minmax(0,1fr)] lg:grid-cols-[192px_minmax(0,1fr)] gap-3 md:gap-4 items-stretch">
-        {/* Bed occupancy (Square with perimeter progress ring) */}
+      {/* KPI Cards Grid (Mobile: square Bed Occupancy + 2 stacked rectangles; PC md+: classic 3 equal columns) */}
+      <div className="grid grid-cols-2 grid-rows-2 md:grid-cols-3 md:grid-rows-1 gap-3 md:gap-4 items-stretch">
+        {/* Bed occupancy (Mobile: Square with perimeter progress ring; PC: Classic card with horizontal bar) */}
         <div
           {...cardEvents('occ')}
-          className={`u214-card row-span-2 relative aspect-square overflow-hidden bg-white p-3.5 sm:p-4 rounded-2xl shadow-xs flex flex-col justify-between ${
+          className={`u214-card row-span-2 md:row-span-1 relative aspect-square md:aspect-auto overflow-hidden md:overflow-visible bg-white p-3.5 md:p-4 rounded-2xl md:border md:border-[#DDE1DC] shadow-xs flex flex-col justify-between ${
             activeBento === 'occ' ? 'is-on' : ''
           }`}
         >
-          {/* Perimeter % progress bar wrapping all 4 edges clockwise */}
+          {/* Mobile-only perimeter % progress bar wrapping all 4 edges clockwise */}
           <svg
             viewBox="0 0 100 100"
-            className="pointer-events-none absolute inset-0 w-full h-full"
+            className="md:hidden pointer-events-none absolute inset-0 w-full h-full"
             aria-hidden="true"
           >
             <rect
@@ -714,52 +727,82 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
             )}
           </svg>
 
-          <div className="relative z-10 text-xs font-semibold text-[#56615C] leading-tight">
-            Công suất giường
-          </div>
-          <div className="relative z-10">
-            <div className="text-3xl font-extrabold text-[#0F2F2A] leading-none">{occPct}%</div>
-            <div className="text-[11px] text-[#56615C] font-medium mt-1">
+          <div className="relative z-10 flex justify-between items-baseline gap-2">
+            <span className="text-xs font-semibold text-[#56615C] leading-tight">Công suất giường</span>
+            <span className="hidden md:inline text-xs text-[#56615C] font-medium">
               {activeCount}/{beds} đang điều trị
+            </span>
+          </div>
+
+          <div className="relative z-10 md:my-2">
+            <div className="md:flex md:items-baseline md:justify-between">
+              <div className="text-3xl font-extrabold md:font-bold text-[#0F2F2A] leading-none">
+                {occPct}%
+              </div>
+              <div className="md:hidden text-[11px] text-[#56615C] font-medium mt-1">
+                {activeCount}/{beds} đang điều trị
+              </div>
+              <div className="hidden md:block text-xs text-[#56615C]">
+                Còn trống: <strong className="text-emerald-700">{freeBeds}</strong> giường
+              </div>
+            </div>
+
+            <div className="hidden md:block h-2 rounded-full bg-[#E6E9E5] overflow-hidden mt-1.5">
+              <div
+                className="u214-occ-fill h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${Math.min(100, occPct)}%`,
+                  background:
+                    occPct >= 90
+                      ? '#C2410C'
+                      : activeBento === 'occ'
+                        ? 'var(--ux-grad)'
+                        : '#0A8A76',
+                }}
+              />
             </div>
           </div>
-          <div className="relative z-10 text-[11px] text-[#56615C]">
+
+          <div className="md:hidden relative z-10 text-[11px] text-[#56615C]">
             Còn trống: <strong className="text-emerald-700">{freeBeds}</strong> giường
           </div>
         </div>
 
-        {/* Admissions today (Top stacked rectangle) */}
+        {/* Admissions today (Mobile: top stacked rectangle; PC: classic vertical card) */}
         <div
           {...cardEvents('in')}
-          className={`u214-card bg-white px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl border border-[#DDE1DC] shadow-xs flex items-center justify-between gap-2 min-w-0 ${
+          className={`u214-card bg-white px-3 py-2.5 md:p-4 rounded-2xl border border-[#DDE1DC] shadow-xs flex md:flex-col items-center md:items-stretch justify-between gap-2 md:gap-0 min-w-0 ${
             activeBento === 'in' ? 'is-on' : ''
           }`}
         >
-          <div className="min-w-0">
-            <div className="text-[11px] sm:text-xs font-semibold text-[#56615C] truncate">
+          <div className="min-w-0 md:contents">
+            <div className="text-[11px] md:text-xs font-semibold text-[#56615C] truncate">
               Vào viện hôm nay
             </div>
-            <div className="text-[11px] text-[#56615C] mt-0.5 truncate">
+            <div className="md:hidden text-[11px] text-[#56615C] mt-0.5 truncate">
               7 ngày qua: <strong>{in7}</strong> ca
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#0A6E5E] leading-none shrink-0">
+          <div className="text-2xl md:text-3xl font-extrabold md:font-bold text-[#0A6E5E] leading-none md:my-1 shrink-0">
             {inToday}
+          </div>
+          <div className="hidden md:block text-xs text-[#56615C]">
+            7 ngày qua: <strong>{in7}</strong> ca
           </div>
         </div>
 
-        {/* Discharges today (Bottom stacked rectangle) */}
+        {/* Discharges today (Mobile: bottom stacked rectangle; PC: classic vertical card) */}
         <div
           {...cardEvents('out')}
-          className={`u214-card bg-white px-3 py-2.5 sm:px-4 sm:py-3 rounded-2xl border border-[#DDE1DC] shadow-xs flex items-center justify-between gap-2 min-w-0 ${
+          className={`u214-card bg-white px-3 py-2.5 md:p-4 rounded-2xl border border-[#DDE1DC] shadow-xs flex md:flex-col items-center md:items-stretch justify-between gap-2 md:gap-0 min-w-0 ${
             activeBento === 'out' ? 'is-on' : ''
           }`}
         >
-          <div className="min-w-0">
-            <div className="text-[11px] sm:text-xs font-semibold text-[#56615C] truncate">
+          <div className="min-w-0 md:contents">
+            <div className="text-[11px] md:text-xs font-semibold text-[#56615C] truncate">
               Ra viện hôm nay
             </div>
-            <div className="flex items-center gap-2 text-[11px] text-[#56615C] mt-0.5 whitespace-nowrap">
+            <div className="md:hidden flex items-center gap-2 text-[11px] text-[#56615C] mt-0.5 whitespace-nowrap">
               <span>
                 Chờ ra: <strong>{pendingDischarges}</strong>
               </span>
@@ -773,8 +816,21 @@ export const DashboardTab: React.FC<DashboardTabProps> = ({
               </button>
             </div>
           </div>
-          <div className="text-2xl sm:text-3xl font-extrabold text-[#A4521A] leading-none shrink-0">
+          <div className="text-2xl md:text-3xl font-extrabold md:font-bold text-[#A4521A] leading-none md:my-1 shrink-0">
             {outToday}
+          </div>
+          <div className="hidden md:flex items-center justify-between text-xs text-[#56615C]">
+            <span>
+              Chờ ra: <strong>{pendingDischarges}</strong>
+            </span>
+            <button
+              type="button"
+              onClick={onGoToScheduledDischarges || onGoToPatients}
+              className="text-[#0E6B5E] hover:underline font-semibold cursor-pointer"
+              title="Xem danh sách ra viện"
+            >
+              Xem DS
+            </button>
           </div>
         </div>
       </div>
