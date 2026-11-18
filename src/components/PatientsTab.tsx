@@ -13,7 +13,7 @@ import {
   isNewAdmitted,
   byRoom
 } from '../lib/constants';
-import { Search, Plus, Edit2, HeartPulse, CalendarPlus, LogOut, ArrowLeft, Clock, ChevronRight, X, Trash2, AlertTriangle } from 'lucide-react';
+import { Search, Plus, Edit2, HeartPulse, CalendarPlus, LogOut, ArrowLeft, Clock, ChevronRight, ChevronDown, ChevronUp, X, Trash2, AlertTriangle } from 'lucide-react';
 import { PatientDetailView } from './PatientDetailView';
 
 interface PatientsTabProps {
@@ -67,6 +67,7 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
 }) => {
   const [q, setQ] = useState('');
   const [showOut, setShowOut] = useState(initialShowDischarged);
+  const [dischargeCollapsed, setDischargeCollapsed] = useState(true);
   const [internalSelectedPatientId, setInternalSelectedPatientId] = useState<number | null>(null);
   const [deleteTargetPatient, setDeleteTargetPatient] = useState<Patient | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -215,26 +216,44 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
         <div className="space-y-4">
           {/* Danh sách ra viện */}
           <div id="danh-sach-ra-vien" className="bg-white rounded-2xl border border-amber-200/90 shadow-xs overflow-hidden scroll-mt-24">
-            <div className="p-3.5 bg-amber-50/75 border-b border-amber-200 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 rounded-md bg-amber-200/90 text-amber-900 text-[11px] font-bold">
+            <button
+              type="button"
+              onClick={() => setDischargeCollapsed((prev) => !prev)}
+              className={`w-full p-3.5 bg-amber-50/75 hover:bg-amber-100/60 flex items-center justify-between gap-2 text-left transition-colors cursor-pointer ${
+                !dischargeCollapsed ? 'border-b border-amber-200' : ''
+              }`}
+              aria-expanded={!dischargeCollapsed}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="px-2 py-0.5 rounded-md bg-amber-200/90 text-amber-900 text-[11px] font-bold shrink-0">
                   Báo ra
                 </span>
-                <h3 className="text-xs md:text-sm font-bold text-[#0F2F2A]">
+                <h3 className="text-xs md:text-sm font-bold text-[#0F2F2A] truncate">
                   Danh sách ra viện · {scheduledDischargePatients.length}
                 </h3>
               </div>
-            </div>
 
-            <div className="divide-y divide-amber-100/60">
-              {!scheduledDischargePatients.length ? (
-                <div className="p-4 text-xs text-center text-[#56615C]">
-                  Chưa có bệnh nhân nào lên lịch ra viện.
-                </div>
-              ) : (
-                scheduledDischargePatients.map((p) => renderScheduledDischargeRow(p))
-              )}
-            </div>
+              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-white/80 border border-amber-200 text-amber-900 text-[11px] font-semibold shrink-0">
+                <span>{dischargeCollapsed ? 'Mở rộng' : 'Thu gọn'}</span>
+                {dischargeCollapsed ? (
+                  <ChevronDown className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronUp className="w-3.5 h-3.5" />
+                )}
+              </span>
+            </button>
+
+            {!dischargeCollapsed && (
+              <div className="divide-y divide-amber-100/60">
+                {!scheduledDischargePatients.length ? (
+                  <div className="p-4 text-xs text-center text-[#56615C]">
+                    Chưa có bệnh nhân nào lên lịch ra viện.
+                  </div>
+                ) : (
+                  scheduledDischargePatients.map((p) => renderScheduledDischargeRow(p))
+                )}
+              </div>
+            )}
           </div>
 
           {/* Newly admitted */}
@@ -466,25 +485,25 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
       <div
         key={`discharge-${p.id}`}
         onClick={() => setSelectedPatientId(p.id)}
-        className="p-3.5 md:p-4 flex flex-wrap items-center justify-between gap-3 hover:bg-amber-50/50 transition-colors cursor-pointer group"
+        className="p-3.5 md:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 hover:bg-amber-50/50 transition-colors cursor-pointer group"
       >
-        <div className="flex items-center gap-3 min-w-0 flex-1">
+        <div className="flex items-start gap-2.5 sm:gap-3 min-w-0 flex-1">
           {/* Room badge */}
-          <span className="px-2.5 py-1 rounded-lg bg-[#0F2F2A] group-hover:bg-[#0E6B5E] text-white font-bold text-xs shrink-0 transition-colors">
+          <span className="px-2.5 py-1 rounded-lg bg-[#0F2F2A] group-hover:bg-[#0E6B5E] text-white font-bold text-xs shrink-0 transition-colors mt-0.5">
             {p.room}
           </span>
 
           {/* Patient Info */}
-          <div className="flex-1 min-w-[200px]">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-bold text-sm text-[#17201D] group-hover:text-[#0E6B5E] transition-colors">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="font-bold text-sm text-[#17201D] group-hover:text-[#0E6B5E] transition-colors break-words">
                 {p.name}
               </span>
-              <span className="text-xs text-[#56615C]">{ageText(p)}</span>
+              <span className="text-xs text-[#56615C] shrink-0">{ageText(p)}</span>
 
               {/* Hình thức */}
               <span
-                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                className={`px-2 py-0.5 rounded text-[10px] font-bold shrink-0 ${
                   kind === 'ck'
                     ? 'bg-blue-100 text-blue-900 border border-blue-200'
                     : kind === 'cv'
@@ -495,32 +514,32 @@ export const PatientsTab: React.FC<PatientsTabProps> = ({
                 {kindLabel}
               </span>
 
-              <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#0E6B5E] transition-colors" />
+              <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-[#0E6B5E] transition-colors shrink-0" />
             </div>
 
             {/* Giờ ra & Ghi chú */}
-            <div className="text-xs text-[#2B3531] mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+            <div className="text-xs text-[#2B3531] mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
               <span>
                 Giờ ra: <strong className="text-amber-950 font-bold">{hm(p.outAt!)} {dm(p.outAt!)}</strong>
               </span>
               {p.doctor && (
-                <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                <span className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
                   BS: {p.doctor}
                 </span>
               )}
             </div>
 
             {p.outNote && (
-              <div className="text-xs text-[#4A5550] mt-1 bg-amber-50/60 px-2 py-1 rounded-lg border border-amber-100 max-w-xl">
+              <div className="text-xs text-[#4A5550] mt-1.5 bg-amber-50/60 px-2.5 py-1.5 rounded-lg border border-amber-100 break-words max-w-full sm:max-w-xl">
                 <span className="font-semibold text-amber-950">Ghi chú:</span> {p.outNote}
               </div>
             )}
           </div>
         </div>
 
-        {/* Action Button: Sửa báo ra */}
+        {/* Action Button: Sửa báo ra & Xóa */}
         <div
-          className="flex items-center gap-1.5 shrink-0"
+          className="flex items-center justify-end gap-1.5 shrink-0 self-end sm:self-center"
           onClick={(e) => e.stopPropagation()}
         >
           <button

@@ -38,16 +38,22 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
   onAddTest,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const progressRef = useRef<HTMLDivElement>(null);
+  const stickyColRef = useRef<HTMLTableCellElement>(null);
 
-  // Drag-to-scroll state
+  // Drag-to-scroll & smooth rAF momentum state
   const isMouseDown = useRef(false);
   const startX = useRef(0);
   const scrollLeftStart = useRef(0);
-  const velocity = useRef(0);
+  const velocityPxPerMs = useRef(0);
+  const exactScrollLeft = useRef(0);
   const lastX = useRef(0);
   const lastTime = useRef(0);
   const rafId = useRef<number | null>(null);
+  const scrollCheckRaf = useRef<number | null>(null);
   const hasDragged = useRef(false);
+  const canLeftRef = useRef(false);
+  const canRightRef = useRef(false);
 
   const [isDragging, setIsDragging] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -101,77 +107,216 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
     });
   });
 
-  // Check scroll position for arrow buttons & edge fade gradients
-  const updateScrollState = useCallback(() => {
+  const focusDateStr =
+    dateGroups.find((g) => g.isToday)?.date ??
+    [...dateGroups].reverse().find((g) => g.date <= todayStr)?.date ??
+    dateGroups[0]?.date ??
+    null;
+
+  const stopAnimations = useCallback(() => {
+    if (rafId.current !== null) {
+      cancelAnimationFrame(rafId.current);
+      rafId.current = null;
+    }
+  }, []);
+
+  // Update scroll edge flags & progress bar without unnecessary React re-renders
+  const syncScrollIndicators = useCallback(() => {
     const el = containerRef.current;
     if (!el) return;
     const { scrollLeft, scrollWidth, clientWidth } = el;
-    setCanScrollLeft(scrollLeft > 4);
-    setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 4);
+    const maxScroll = Math.max(0, scrollWidth - clientWidth);
+
+    if (progressRef.current) {
+      const ratio = maxScroll > 0 ? Math.min(1, Math.max(0, scrollLeft / maxScroll)) : 1;
+      progressRef.current.style.transform = `scaleX(${ratio.toFixed(4)})`;
+    }
+
+    const nextLeft = scrollLeft > 4;
+    const nextRight = scrollLeft + clientWidth < scrollWidth - 4;
+    if (nextLeft !== canLeftRef.current) {
+      canLeftRef.current = nextLeft;
+      setCanScrollLeft(nextLeft);
+    }
+    if (nextRight !== canRightRef.current) {
+      canRightRef.current = nextRight;
+      setCanScrollRight(nextRight);
+    }
   }, []);
+
+  const scheduleScrollSync = useCallback(() => {
+    if (scrollCheckRaf.current !== null) return;
+    scrollCheckRaf.current = requestAnimationFrame(() => {
+      scrollCheckRaf.current = null;
+      syncScrollIndicators();
+    });
+  }, [syncScrollIndicators]);
+
+  // Smooth cubic-out animated scroll for buttons & initial positioning
+  const animateScrollTo = useCallback(
+    (targetLeft: number, durationMs = 420) => {
+      const el = containerRef.current;
+      if (!el) return;
+      stopAnimations();
+
+      const maxScroll = Math.max(0, el.scrollWidth - el.clientWidth);
+      const clampedTarget = Math.min(maxScroll, Math.max(0, targetLeft));
+      const reduced =
+        typeof window !== 'undefined' &&
+        typeof window.matchMedia === 'function' &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      if (reduced || durationMs <= 0) {
+        el.scrollLeft = clampedTarget;
+        exactScrollLeft.current = clampedTarget;
+        syncScrollIndicators();
+        return;
+      }
+
+      const startLeft = el.scrollLeft;
+      const change = clampedTarget - startLeft;
+      if (Math.abs(change) < 1) {
+        el.scrollLeft = clampedTarget;
+        syncScrollIndicators();
+        return;
+      }
+
+      const startTime = performance.now();
+      const step = (nowTs: number) => {
+        const currentEl = containerRef.current;
+        if (!currentEl) return;
+        const t = Math.min(1, (nowTs - startTime) / durationMs);
+        const eased = 1 - Math.pow(1 - t, 3);
+        const nextPos = startLeft + change * eased;
+        currentEl.scrollLeft = nextPos;
+        exactScrollLeft.current = nextPos;
+        syncScrollIndicators();
+
+        if (t < 1) {
+          rafId.current = requestAnimationFrame(step);
+        } else {
+          rafId.current = null;
+        }
+      };
+
+      rafId.current = requestAnimationFrame(step);
+    },
+    [stopAnimations, syncScrollIndicators]
+  );
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
 
-    updateScrollState();
+    const scrollToCurrentDate = () => {
+      const container = containerRef.current;
+      if (!container) return;
 
-    // Auto-scroll to the newest tests (far right) initially so user immediately sees latest data
-    const timer = setTimeout(() => {
-      if (el) {
-        el.scrollLeft = el.scrollWidth;
-        updateScrollState();
+      const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
+      let targetLeft = maxScroll;
+
+      if (focusDateStr) {
+        const targetHeader = container.querySelector<HTMLElement>(
+          `th[data-date="${focusDateStr}"]`
+        );
+        if (targetHeader) {
+          const stickyWidth = stickyColRef.current?.offsetWidth ?? 0;
+          const containerRect = container.getBoundingClientRect();
+          const targetRect = targetHeader.getBoundingClientRect();
+          const calculatedOffset =
+            targetRect.left - containerRect.left + container.scrollLeft - stickyWidth;
+          targetLeft = Math.min(maxScroll, Math.max(0, calculatedOffset));
+        }
       }
-    }, 50);
 
-    const handleResize = () => updateScrollState();
+      container.scrollLeft = targetLeft;
+      exactScrollLeft.current = targetLeft;
+      syncScrollIndicators();
+    };
+
+    scrollToCurrentDate();
+    const raf = requestAnimationFrame(scrollToCurrentDate);
+
+    const handleResize = () => syncScrollIndicators();
     window.addEventListener('resize', handleResize);
     return () => {
-      clearTimeout(timer);
+      cancelAnimationFrame(raf);
       window.removeEventListener('resize', handleResize);
+      stopAnimations();
+      if (scrollCheckRaf.current !== null) {
+        cancelAnimationFrame(scrollCheckRaf.current);
+        scrollCheckRaf.current = null;
+      }
     };
-  }, [records.length, updateScrollState]);
+  }, [focusDateStr, records.length, syncScrollIndicators, stopAnimations]);
 
-  // Inertia momentum animation
-  const startMomentum = () => {
-    const decay = 0.92;
-    const step = () => {
-      const el = containerRef.current;
-      if (!el) return;
-      if (Math.abs(velocity.current) > 0.5) {
-        el.scrollLeft -= velocity.current;
-        velocity.current *= decay;
-        updateScrollState();
+  // Sub-pixel frame-rate-independent inertia momentum animation
+  const startMomentum = useCallback(() => {
+    stopAnimations();
+    const el = containerRef.current;
+    if (!el) return;
+    exactScrollLeft.current = el.scrollLeft;
+    let prevTime = performance.now();
+
+    const step = (nowTs: number) => {
+      const currentEl = containerRef.current;
+      if (!currentEl) return;
+
+      const dt = Math.min(32, Math.max(1, nowTs - prevTime));
+      prevTime = nowTs;
+
+      if (Math.abs(velocityPxPerMs.current) > 0.025) {
+        exactScrollLeft.current -= velocityPxPerMs.current * dt;
+        const maxScroll = Math.max(0, currentEl.scrollWidth - currentEl.clientWidth);
+        if (exactScrollLeft.current <= 0) {
+          exactScrollLeft.current = 0;
+          velocityPxPerMs.current = 0;
+        } else if (exactScrollLeft.current >= maxScroll) {
+          exactScrollLeft.current = maxScroll;
+          velocityPxPerMs.current = 0;
+        }
+
+        currentEl.scrollLeft = exactScrollLeft.current;
+        velocityPxPerMs.current *= Math.pow(0.945, dt / 16.667);
+        syncScrollIndicators();
         rafId.current = requestAnimationFrame(step);
       } else {
-        velocity.current = 0;
+        velocityPxPerMs.current = 0;
         rafId.current = null;
       }
     };
-    if (rafId.current) cancelAnimationFrame(rafId.current);
+
     rafId.current = requestAnimationFrame(step);
-  };
+  }, [stopAnimations, syncScrollIndicators]);
 
   // Mouse Drag Events for Desktop
   const onMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest('textarea') ||
+      target.closest('a')
+    ) {
+      return;
+    }
+
     const el = containerRef.current;
     if (!el) return;
 
-    if (rafId.current) {
-      cancelAnimationFrame(rafId.current);
-      rafId.current = null;
-    }
+    stopAnimations();
 
     isMouseDown.current = true;
     hasDragged.current = false;
     startX.current = e.pageX;
     scrollLeftStart.current = el.scrollLeft;
+    exactScrollLeft.current = el.scrollLeft;
     lastX.current = e.pageX;
     lastTime.current = performance.now();
-    velocity.current = 0;
+    velocityPxPerMs.current = 0;
 
     const onMouseMove = (moveEvent: MouseEvent) => {
-      if (!isMouseDown.current || !el) return;
+      if (!isMouseDown.current || !containerRef.current) return;
       const currentX = moveEvent.pageX;
       const deltaX = currentX - startX.current;
 
@@ -180,17 +325,19 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
         setIsDragging(true);
       }
 
-      // Calculate instant velocity
       const nowTime = performance.now();
       const dt = nowTime - lastTime.current;
-      if (dt > 8) {
-        velocity.current = ((currentX - lastX.current) / dt) * 12;
+      if (dt > 4) {
+        const instVel = Math.max(-2.8, Math.min(2.8, (currentX - lastX.current) / dt));
+        velocityPxPerMs.current = velocityPxPerMs.current * 0.35 + instVel * 0.65;
         lastX.current = currentX;
         lastTime.current = nowTime;
       }
 
-      el.scrollLeft = scrollLeftStart.current - deltaX;
-      updateScrollState();
+      const nextPos = scrollLeftStart.current - deltaX;
+      exactScrollLeft.current = nextPos;
+      containerRef.current.scrollLeft = nextPos;
+      scheduleScrollSync();
     };
 
     const onMouseUp = () => {
@@ -198,7 +345,14 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
       setIsDragging(false);
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
-      startMomentum();
+      if (performance.now() - lastTime.current > 80) {
+        velocityPxPerMs.current = 0;
+      }
+      if (Math.abs(velocityPxPerMs.current) > 0.04) {
+        startMomentum();
+      } else {
+        syncScrollIndicators();
+      }
     };
 
     window.addEventListener('mousemove', onMouseMove);
@@ -209,19 +363,17 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
   const scrollByAmount = (amount: number) => {
     const el = containerRef.current;
     if (!el) return;
-    el.scrollBy({ left: amount, behavior: 'smooth' });
+    animateScrollTo(el.scrollLeft + amount, 380);
   };
 
   const scrollToStart = () => {
-    const el = containerRef.current;
-    if (!el) return;
-    el.scrollTo({ left: 0, behavior: 'smooth' });
+    animateScrollTo(0, 440);
   };
 
   const scrollToEnd = () => {
     const el = containerRef.current;
     if (!el) return;
-    el.scrollTo({ left: el.scrollWidth, behavior: 'smooth' });
+    animateScrollTo(el.scrollWidth, 440);
   };
 
   const getGlucoseBadgeColor = (valStr: string) => {
@@ -262,7 +414,14 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
   return (
     <div className="relative bg-white rounded-2xl border border-[#DDE1DC] shadow-xs overflow-hidden select-none">
       {/* Table Navigation Top Bar */}
-      <div className="p-2 bg-[#F9FAF9] border-b border-[#EEF0ED] flex items-center justify-end gap-2 text-xs">
+      <div className="p-2 bg-[#F9FAF9] border-b border-[#EEF0ED] flex items-center justify-between gap-2 text-xs">
+        <div className="flex-1 max-w-[160px] h-1 rounded-full bg-[#E6E9E5] overflow-hidden ml-1" aria-hidden="true">
+          <div
+            ref={progressRef}
+            className="h-full bg-[#0E6B5E] origin-left rounded-full"
+            style={{ transform: 'scaleX(1)' }}
+          />
+        </div>
         {/* Scroll Control Buttons */}
         <div className="flex items-center gap-1">
           <button
@@ -316,17 +475,21 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
           <div className="pointer-events-none absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-black/10 to-transparent z-25 transition-opacity" />
         )}
 
-        {/* Scrollable Container with Drag Engine */}
+        {/* Scrollable Container with Smooth Sub-Pixel Drag Engine */}
         <div
           ref={containerRef}
-          onScroll={updateScrollState}
+          onScroll={scheduleScrollSync}
           onMouseDown={onMouseDown}
+          onTouchStart={stopAnimations}
+          onWheel={stopAnimations}
           className={`overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 will-change-scroll ${
             isDragging ? 'cursor-grabbing select-none' : 'cursor-grab'
           }`}
           style={{
             WebkitOverflowScrolling: 'touch',
             overscrollBehaviorX: 'contain',
+            scrollBehavior: 'auto',
+            touchAction: 'pan-x pan-y',
           }}
         >
           <table className="w-full text-xs border-collapse">
@@ -334,7 +497,10 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
               {/* Row 1: Date Group Headers */}
               <tr className="bg-[#FAFBF9] border-b border-[#EEF0ED]">
                 {/* Sticky Left Column: Thông số */}
-                <th className="sticky left-0 z-30 p-2.5 text-left font-bold text-gray-700 bg-white border-r border-[#DDE1DC] w-28 sm:w-32 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]">
+                <th
+                  ref={stickyColRef}
+                  className="sticky left-0 z-30 p-2.5 text-left font-bold text-gray-700 bg-white border-r border-[#DDE1DC] w-28 sm:w-32 shrink-0 shadow-[2px_0_6px_-2px_rgba(0,0,0,0.08)]"
+                >
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-[#0E6B5E]" />
                     <span>Ngày test</span>
@@ -345,6 +511,7 @@ export const GlucoseTimelineTable: React.FC<GlucoseTimelineTableProps> = ({
                 {dateGroups.map((group) => (
                   <th
                     key={group.date}
+                    data-date={group.date}
                     colSpan={group.tests.length}
                     className={`p-2 text-center font-bold border-r border-[#EEF0ED] last:border-r-0 ${
                       group.isToday

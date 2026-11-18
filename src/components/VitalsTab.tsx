@@ -15,7 +15,7 @@ import {
   KIND_LABELS,
   fold,
 } from '../lib/constants';
-import { Plus, FileSpreadsheet, AlertTriangle, Calendar, ArrowLeft, Search, X, Camera, Copy, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Plus, FileSpreadsheet, AlertTriangle, Calendar, ArrowLeft, Search, X, Camera, Copy, Check, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { VitalsTimelineTable, VitalsTimelineItem } from './VitalsTimelineTable';
 
 interface VitalsTabProps {
@@ -40,6 +40,7 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
   const [selectedDate, setSelectedDate] = useState(isoDay(Date.now()));
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedPids, setExpandedPids] = useState<Set<number>>(new Set());
+  const [expandedRooms, setExpandedRooms] = useState<Set<string>>(new Set());
   const [isQuickDailyReport, setIsQuickDailyReport] = useState(false);
   const [copyToast, setCopyToast] = useState<string | null>(null);
 
@@ -53,6 +54,15 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
       const next = new Set(prev);
       if (next.has(pid)) next.delete(pid);
       else next.add(pid);
+      return next;
+    });
+  };
+
+  const toggleRoom = (rm: string) => {
+    setExpandedRooms((prev) => {
+      const next = new Set(prev);
+      if (next.has(rm)) next.delete(rm);
+      else next.add(rm);
       return next;
     });
   };
@@ -516,21 +526,33 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
             : `Không có bệnh nhân trong ngày ${dm(dStart)}.`}
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {displayedRooms.map((rm) => {
             const roomPatients = filteredPatients.filter((p) => p.room === rm);
+            const isRoomOpen = expandedRooms.has(rm) || qClean.length > 0;
             return (
               <div key={rm} className="bg-white rounded-2xl border border-[#DDE1DC] shadow-xs overflow-hidden">
-                {/* Room Header Banner */}
-                <div className="px-4 py-2.5 bg-[#0F2F2A] text-white flex items-center justify-between">
+                {/* Room Header Banner (Click to expand/collapse) */}
+                <button
+                  type="button"
+                  onClick={() => toggleRoom(rm)}
+                  aria-expanded={isRoomOpen}
+                  className="w-full px-4 py-2.5 bg-[#0F2F2A] hover:bg-[#153D37] text-white flex items-center justify-between gap-2 text-left transition-colors cursor-pointer"
+                >
                   <span className="font-bold text-sm">Phòng {rm}</span>
-                  <span className="text-xs text-emerald-200 font-medium">
-                    {roomPatients.length} bệnh nhân
-                  </span>
-                </div>
+                  <div className="flex items-center gap-2 text-xs text-emerald-200 font-medium">
+                    <span>{roomPatients.length} bệnh nhân</span>
+                    {isRoomOpen ? (
+                      <ChevronUp className="w-4 h-4 text-emerald-200 shrink-0" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4 text-emerald-200 shrink-0" />
+                    )}
+                  </div>
+                </button>
 
                 {/* Patient Rows inside room */}
-                <div className="divide-y divide-[#E6E9E5]">
+                {isRoomOpen && (
+                <div className="divide-y divide-[#E6E9E5] animate-in fade-in duration-150">
                   {roomPatients.map((p) => {
                     const isExpanded = expandedPids.has(p.id);
                     const fullTimeline = getPatientFullTimeline(p);
@@ -611,6 +633,7 @@ export const VitalsTab: React.FC<VitalsTabProps> = ({
                     );
                   })}
                 </div>
+                )}
               </div>
             );
           })}

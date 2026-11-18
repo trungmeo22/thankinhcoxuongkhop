@@ -1,5 +1,13 @@
 import React from 'react';
-import { LayoutDashboard, Users, HeartPulse, FileText, CalendarClock, Syringe, Archive, ArrowLeft } from 'lucide-react';
+import { LayoutDashboard, ArrowLeft } from 'lucide-react';
+import {
+  AnimatedUsersIcon,
+  AnimatedHeartPulseIcon,
+  AnimatedSyringeIcon,
+  AnimatedFileTextIcon,
+  AnimatedCalendarClockIcon,
+  AnimatedArchiveIcon,
+} from './AnimatedNavIcons';
 
 export type TabKey = 'dash' | 'bn' | 'dhst' | 'duonghuyet' | 'truc' | 'lich' | 'cu';
 
@@ -24,12 +32,12 @@ export const Navigation: React.FC<NavigationProps> = ({
 }) => {
   const tabs = [
     { key: 'dash' as TabKey, label: 'Tổng quan', short: 'Tổng quan', icon: LayoutDashboard },
-    { key: 'bn' as TabKey, label: 'Bệnh nhân', short: 'Bệnh nhân', badge: activePatientCount, icon: Users },
-    { key: 'dhst' as TabKey, label: 'DHST/Diễn biến', short: 'DHST', icon: HeartPulse },
-    { key: 'duonghuyet' as TabKey, label: 'Báo đường huyết', short: 'Đường huyết', badge: todayGlucoseCount, icon: Syringe },
-    { key: 'truc' as TabKey, label: 'Báo cáo trực', short: 'Báo trực', icon: FileText },
-    { key: 'lich' as TabKey, label: 'Lịch chỉ định', short: 'Lịch tiêm', badge: pendingScheduleCount, icon: CalendarClock },
-    { key: 'cu' as TabKey, label: 'Bệnh nhân cũ', short: 'BN cũ', badge: dischargedCount, icon: Archive },
+    { key: 'bn' as TabKey, label: 'Bệnh nhân', short: 'Bệnh nhân', badge: activePatientCount, icon: AnimatedUsersIcon },
+    { key: 'dhst' as TabKey, label: 'DHST/Diễn biến', short: 'DHST', icon: AnimatedHeartPulseIcon },
+    { key: 'duonghuyet' as TabKey, label: 'Báo đường huyết', short: 'Đường huyết', badge: todayGlucoseCount, icon: AnimatedSyringeIcon },
+    { key: 'truc' as TabKey, label: 'Báo cáo trực', short: 'Báo trực', icon: AnimatedFileTextIcon },
+    { key: 'lich' as TabKey, label: 'Lịch chỉ định', short: 'Lịch tiêm', badge: pendingScheduleCount, icon: AnimatedCalendarClockIcon },
+    { key: 'cu' as TabKey, label: 'Bệnh nhân cũ', short: 'BN cũ', badge: dischargedCount, icon: AnimatedArchiveIcon },
   ];
 
   const currentTab = tabs.find((t) => t.key === activeTab);
